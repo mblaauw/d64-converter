@@ -17,7 +17,7 @@ use c64re_report::{
 };
 use c64re_trace::AnalysisSession;
 use c64re_vic::VicState;
-use c64re_vice_bmp::{StopReason, ViceMonitor};
+use c64re_vice_bmp::ViceMonitor;
 
 fn main() {
     if let Err(err) = run() {
@@ -253,6 +253,15 @@ fn analyze(path: &str, options: &AnalyzeOptions) -> Result<(), Box<dyn std::erro
             "Extracted {} screen blocks, {} charsets, and {} displayed sprite blocks into `assets/`.",
             asset_summary.screen_count, asset_summary.charset_count, asset_summary.sprite_count
         ));
+        match capture.game_start_frame {
+            Some(frame) => session.notes.push(format!(
+                "Game start (t0) detected at frame {frame}: IRQ vector left the KERNAL default and the screen base left $0400. Earlier frames are the loader phase."
+            )),
+            None => session.notes.push(
+                "No game start (t0) detected: capture stayed in the KERNAL/loader phase for the whole run."
+                    .to_string(),
+            ),
+        }
         if !capture.input_events.is_empty() {
             session.notes.push(format!(
                 "Applied {} joystick input events from the default autoplay script.",
@@ -302,6 +311,7 @@ struct ViceCapture {
     samples: Vec<HardwareSample>,
     input_events_path: Option<String>,
     input_events: Vec<InputEvent>,
+    game_start_frame: Option<u64>,
 }
 
 #[derive(Debug, Clone)]
@@ -466,9 +476,13 @@ fn write_emulator_json(out: &mut String, vice_capture: Option<&ViceCapture>) {
             None => out.push_str("    \"input_events_path\": null,\n"),
         }
         out.push_str(&format!(
-            "    \"input_event_count\": {}\n",
+            "    \"input_event_count\": {},\n",
             capture.input_events.len()
         ));
+        match capture.game_start_frame {
+            Some(frame) => out.push_str(&format!("    \"game_start_frame\": {frame}\n")),
+            None => out.push_str("    \"game_start_frame\": null\n"),
+        }
     } else {
         out.push_str("    \"status\": \"not_run\",\n");
         out.push_str(
@@ -503,6 +517,7 @@ fn resolve_file_name(
     Ok(matches[0].name.clone())
 }
 
+#[allow(clippy::too_many_arguments)]
 fn capture_with_vice(
     disk_path: &str,
     autostart_name: Option<&str>,
@@ -596,8 +611,10 @@ fn capture_with_running_vice(
     let pc0 = monitor.registers()?.pc;
     println!("autostart sync at pc=${pc0:04x} ({sync:?})");
 
-    // 2. Frame stepping: checkpoint on the KERNAL IRQ entry ($EA31) so each
-    // stop is one frame (PAL: 50 IRQs/s). Input is scheduled by frame number.
+    // 2. Frame stepping by raster wrap: step instructions until the VIC
+    // raster line wraps (high -> low), which marks exactly one PAL frame
+    // regardless of IRQ state. This is deterministic and works even while
+    // fastloaders disable interrupts.
     let input_script = autoplay.then(|| default_autoplay_script(seconds));
     let mut current_joy2 = None;
     let mut input_events = Vec::new();
@@ -612,23 +629,41 @@ fn capture_with_running_vice(
             &mut input_events,
         )?;
     }
-    let frame_cp = monitor.breakpoint_set(0xea31)?;
 
     let total_frames = seconds * 50; // PAL
     let sample_every = sample_every_frames(sample_hz);
     let mut samples = Vec::new();
+    let mut game_start_frame: Option<u64> = None;
+    let mut prev_raster = read_raster_line(&mut monitor)?;
     while frame < total_frames {
         if let Some(status) = child.try_wait()? {
             return Err(format!("VICE exited early with status {status}").into());
         }
-        match monitor.continue_to_stop() {
-            Ok(StopReason::Stopped(_)) => {}
-            Ok(reason) => {
-                return Err(format!("unexpected stop reason {reason:?}").into());
+        // Advance in instruction chunks until the raster line wraps. Raster
+        // increases monotonically within a PAL frame (0..311), so any
+        // decrease marks a frame boundary. 2500 instructions ≈ half a frame,
+        // so a wrap is detected every couple of chunks. If the CPU jams
+        // (illegal opcode) or stops, the raster stalls: bail out after a
+        // fixed instruction budget instead of spinning forever.
+        let mut wrapped = false;
+        for _ in 0..16 {
+            monitor.step_instructions(2500, false)?;
+            let raster = read_raster_line(&mut monitor)?;
+            wrapped = raster < prev_raster;
+            prev_raster = raster;
+            if wrapped {
+                break;
             }
-            Err(err) => return Err(Box::new(err)),
+        }
+        if !wrapped {
+            return Err(
+                "capture stalled: VIC raster stopped advancing (CPU jam or emulator halt)".into(),
+            );
         }
         frame += 1;
+        if frame.is_multiple_of(500) {
+            println!("captured frame {frame}/{}", total_frames);
+        }
 
         if let Some(script) = &input_script {
             let (port, value, label) = desired_joy_value(script, frame);
@@ -643,10 +678,18 @@ fn capture_with_running_vice(
             )?;
         }
         if frame.is_multiple_of(sample_every) {
-            samples.push(read_hardware_sample(&mut monitor, samples.len(), frame)?);
+            let sample = read_hardware_sample(&mut monitor, samples.len(), frame)?;
+            // t0 heuristic: once the screen base leaves the KERNAL default
+            // ($0400) and the CPU leaves ROM, the game has started.
+            if game_start_frame.is_none()
+                && sample.pc < 0xa000
+                && sample.vic.screen_base() != 0x0400
+            {
+                game_start_frame = Some(frame);
+            }
+            samples.push(sample);
         }
     }
-    monitor.checkpoint_delete(frame_cp)?;
 
     let registers = monitor.registers()?;
     let reset_vector = monitor.read_memory(0xfffc, 0xfffd)?;
@@ -680,6 +723,7 @@ fn capture_with_running_vice(
         input_events_path: (!input_events.is_empty())
             .then(|| "traces/input-events.json".to_string()),
         input_events,
+        game_start_frame,
     })
 }
 
@@ -690,6 +734,16 @@ fn sample_every_frames(sample_hz: u64) -> u64 {
     } else {
         50u64.saturating_div(sample_hz).max(1)
     }
+}
+
+/// Read the current VIC raster line (LIN register, id 53) via the monitor.
+fn read_raster_line(monitor: &mut ViceMonitor) -> Result<u16, Box<dyn std::error::Error>> {
+    let registers = monitor.registers_raw()?;
+    Ok(registers
+        .iter()
+        .find(|r| r.id == 53)
+        .map(|r| r.value)
+        .unwrap_or(0))
 }
 
 fn read_hardware_sample(

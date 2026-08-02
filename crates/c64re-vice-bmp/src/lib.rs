@@ -131,6 +131,8 @@ pub enum CommandType {
     RegistersSet = 0x32,
     Dump = 0x41,
     Undump = 0x42,
+    ResourceGet = 0x51,
+    ResourceSet = 0x52,
     AdvanceInstructions = 0x71,
     KeyboardFeed = 0x72,
     ExecuteUntilReturn = 0x73,
@@ -537,6 +539,48 @@ impl ViceMonitor {
         parse_cpu_history(&response.body)
     }
 
+    /// Read a VICE resource by name (0x51). Returns the raw value bytes.
+    pub fn resource_get(&mut self, name: &str) -> Result<ResourceValue> {
+        if name.len() > u8::MAX as usize || name.is_empty() {
+            return Err(MonitorError::Protocol(
+                "resource name must be 1-255 bytes".to_string(),
+            ));
+        }
+        let mut body = vec![name.len() as u8];
+        body.extend_from_slice(name.as_bytes());
+        let response = self.send_command(CommandType::ResourceGet, body)?;
+        response.ensure_ok()?;
+        parse_resource_value(&response.body)
+    }
+
+    /// Set a VICE resource by name (0x52). Strings or ints (1/2/4 bytes LE).
+    pub fn resource_set(&mut self, name: &str, value: &ResourceValue) -> Result<()> {
+        if name.len() > u8::MAX as usize || name.is_empty() {
+            return Err(MonitorError::Protocol(
+                "resource name must be 1-255 bytes".to_string(),
+            ));
+        }
+        let mut body = vec![value.value_type()];
+        body.push(name.len() as u8);
+        body.extend_from_slice(name.as_bytes());
+        match value {
+            ResourceValue::String(bytes) => {
+                if bytes.len() > u8::MAX as usize {
+                    return Err(MonitorError::Protocol(
+                        "resource string value is limited to 255 bytes".to_string(),
+                    ));
+                }
+                body.push(bytes.len() as u8);
+                body.extend_from_slice(bytes);
+            }
+            ResourceValue::Int(value) => {
+                body.extend_from_slice(&value.to_le_bytes());
+            }
+        }
+        let response = self.send_command(CommandType::ResourceSet, body)?;
+        response.ensure_ok()
+    }
+
     fn checkpoint_set(
         &mut self,
         start: u16,
@@ -780,6 +824,72 @@ fn parse_display_image(body: &[u8]) -> Result<DisplayImage> {
 pub struct BankInfo {
     pub id: u16,
     pub name: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ResourceValue {
+    String(Vec<u8>),
+    Int(i32),
+}
+
+impl ResourceValue {
+    fn value_type(&self) -> u8 {
+        match self {
+            Self::String(_) => 0x00,
+            Self::Int(_) => 0x01,
+        }
+    }
+}
+
+fn parse_resource_value(body: &[u8]) -> Result<ResourceValue> {
+    let Some(&value_type) = body.first() else {
+        return Err(MonitorError::Protocol(
+            "resource response body is empty".to_string(),
+        ));
+    };
+    match value_type {
+        0x00 => {
+            let Some(&len) = body.get(1) else {
+                return Err(MonitorError::Protocol(
+                    "resource string missing length".to_string(),
+                ));
+            };
+            let bytes = body
+                .get(2..2 + usize::from(len))
+                .ok_or_else(|| MonitorError::Protocol("resource string truncated".to_string()))?;
+            Ok(ResourceValue::String(bytes.to_vec()))
+        }
+        0x01 => {
+            if body.len() < 6 {
+                return Err(MonitorError::Protocol(
+                    "resource int response too short".to_string(),
+                ));
+            }
+            let len = usize::from(body[1]);
+            let value_bytes = body
+                .get(2..2 + len)
+                .ok_or_else(|| MonitorError::Protocol("resource int truncated".to_string()))?;
+            let value = match len {
+                1 => i32::from(i8::from_le_bytes([value_bytes[0]])),
+                2 => i32::from(i16::from_le_bytes([value_bytes[0], value_bytes[1]])),
+                4 => i32::from_le_bytes([
+                    value_bytes[0],
+                    value_bytes[1],
+                    value_bytes[2],
+                    value_bytes[3],
+                ]),
+                _ => {
+                    return Err(MonitorError::Protocol(
+                        "unsupported resource int width".to_string(),
+                    ))
+                }
+            };
+            Ok(ResourceValue::Int(value))
+        }
+        other => Err(MonitorError::Protocol(format!(
+            "unknown resource value type {other:02x}"
+        ))),
+    }
 }
 
 fn parse_bank_list(body: &[u8]) -> Result<Vec<BankInfo>> {
