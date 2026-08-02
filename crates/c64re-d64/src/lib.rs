@@ -102,7 +102,7 @@ impl D64Image {
     }
 
     pub fn from_bytes(bytes: Vec<u8>) -> Result<Self, D64Error> {
-        if bytes.len() < standard_d64_len() || bytes.len() % SECTOR_SIZE != 0 {
+        if bytes.len() < standard_d64_len() || !bytes.len().is_multiple_of(SECTOR_SIZE) {
             return Err(D64Error::UnsupportedSize(bytes.len()));
         }
         Ok(Self { bytes })

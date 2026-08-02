@@ -7,6 +7,12 @@ pub fn blueprint_markdown(
     directory: &[DirectoryEntry],
 ) -> String {
     let counts = session.provenance.counts();
+    let has_provenance = counts.executed > 0
+        || counts.cpu_read > 0
+        || counts.cpu_written > 0
+        || counts.vic_fetched > 0
+        || counts.sid_written > 0
+        || counts.write_then_execute > 0;
     let mut out = String::new();
     out.push_str("# C64 Reverse-Engineering Blueprint\n\n");
     out.push_str("## Source\n\n");
@@ -17,7 +23,11 @@ pub fn blueprint_markdown(
         out.push_str(&format!("- DOS type: `{}`\n", info.dos_type));
     }
     out.push_str(&format!("- Directory entries: {}\n", directory.len()));
-    out.push_str(&format!("- Captured frames: {}\n", session.frames.len()));
+    if !session.frames.is_empty() {
+        out.push_str(&format!("- Captured frames: {}\n", session.frames.len()));
+    } else {
+        out.push_str("- Captured frames: none (frame-stepped capture not yet run)\n");
+    }
     out.push('\n');
 
     out.push_str("## Disk Directory\n\n");
@@ -39,16 +49,23 @@ pub fn blueprint_markdown(
         out.push('\n');
     }
 
-    out.push_str("## Provenance Summary\n\n");
-    out.push_str(&format!("- Executed bytes: {}\n", counts.executed));
-    out.push_str(&format!("- CPU-read bytes: {}\n", counts.cpu_read));
-    out.push_str(&format!("- CPU-written bytes: {}\n", counts.cpu_written));
-    out.push_str(&format!("- VIC-fetched bytes: {}\n", counts.vic_fetched));
-    out.push_str(&format!("- SID-written bytes: {}\n", counts.sid_written));
-    out.push_str(&format!(
-        "- Write-then-execute bytes: {}\n\n",
-        counts.write_then_execute
-    ));
+    if has_provenance {
+        out.push_str("## Provenance Summary\n\n");
+        out.push_str(&format!("- Executed bytes: {}\n", counts.executed));
+        out.push_str(&format!("- CPU-read bytes: {}\n", counts.cpu_read));
+        out.push_str(&format!("- CPU-written bytes: {}\n", counts.cpu_written));
+        out.push_str(&format!("- VIC-fetched bytes: {}\n", counts.vic_fetched));
+        out.push_str(&format!("- SID-written bytes: {}\n", counts.sid_written));
+        out.push_str(&format!(
+            "- Write-then-execute bytes: {}\n\n",
+            counts.write_then_execute
+        ));
+    } else {
+        out.push_str("## Provenance\n\n");
+        out.push_str(
+            "- Not collected yet: provenance requires an instrumented capture (see T13 work items).\n\n",
+        );
+    }
 
     out.push_str("## Current Findings\n\n");
     if session.notes.is_empty() {
@@ -59,12 +76,31 @@ pub fn blueprint_markdown(
         }
     }
 
-    out.push_str("\n## Open Questions\n\n");
-    out.push_str("- Which file is the boot entry point?\n");
-    out.push_str("- Does the game use a cruncher, fastloader, or custom loader?\n");
-    out.push_str("- Which joystick port and input patterns are active?\n");
-    out.push_str("- Which memory ranges become stable after decrunching?\n");
+    out.push_str(
+        "\n## Open Questions\n\nSee `open-questions.md` for the open questions and the specific evidence needed to close each one.\n\n",
+    );
 
+    out
+}
+
+pub fn open_questions_markdown(session: &AnalysisSession) -> String {
+    let mut out = String::new();
+    out.push_str("# Open Questions\n\n");
+    out.push_str("Each question lists the specific evidence needed to close it.\n\n");
+    out.push_str("| # | Question | Evidence needed |\n");
+    out.push_str("| ---: | --- | --- |\n");
+    out.push_str("| 1 | Which file is the boot entry point? | Directory `file_index` of the autostarted file; first executed PC after autostart; `CpuHistory` PC list. |\n");
+    out.push_str("| 2 | Does the game use a cruncher, fastloader, or custom loader? | Bytes executed before the first screen change; `$D018`/`$D011` deltas between boot and `t0`; IRQ vector writes. |\n");
+    out.push_str("| 3 | Which joystick port and input patterns are active? | Frame-numbered input log; `$DC00`/`$DC01` reads at `t0`; response of game state to probe inputs. |\n");
+    out.push_str("| 4 | Which memory ranges become stable after decrunching? | RAM diff between two runs at the same frame; per-frame write-watchpoint log. |\n");
+    if session.frames.is_empty() {
+        out.push_str("\nNo frames captured in this session; none of the above can be answered from this run alone.\n");
+    } else {
+        out.push_str(&format!(
+            "\nSession captured {} frame(s); evidence above should be collected in a dedicated probe run.\n",
+            session.frames.len()
+        ));
+    }
     out
 }
 

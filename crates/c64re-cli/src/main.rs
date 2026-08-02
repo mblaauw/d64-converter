@@ -12,10 +12,12 @@ use c64re_assets::{
     SPRITE_HEIGHT, SPRITE_WIDTH,
 };
 use c64re_d64::D64Image;
-use c64re_report::{blueprint_markdown, directory_json, disk_info_json, json_escape};
+use c64re_report::{
+    blueprint_markdown, directory_json, disk_info_json, json_escape, open_questions_markdown,
+};
 use c64re_trace::AnalysisSession;
 use c64re_vic::VicState;
-use c64re_vice_bmp::ViceMonitor;
+use c64re_vice_bmp::{StopReason, ViceMonitor};
 
 fn main() {
     if let Err(err) = run() {
@@ -189,18 +191,19 @@ fn analyze(path: &str, options: &AnalyzeOptions) -> Result<(), Box<dyn std::erro
     fs::write(disk.join("directory.json"), directory_json(&directory))?;
     fs::write(snapshots.join("static-load.ram"), &static_ram)?;
     let vice_capture = if options.vice {
-        let boot_path = match &options.autostart_file {
+        let autostart_name = match &options.autostart_file {
             Some(wanted) => {
-                let resolved = resolve_boot_path(out, &directory, wanted)?;
+                let resolved = resolve_file_name(&directory, wanted)?;
                 session.notes.push(format!(
-                    "Autostarted disk file '{wanted}' instead of the whole disk."
+                    "Autostarted disk file '{wanted}' from the attached image."
                 ));
-                resolved
+                Some(resolved)
             }
-            None => path.to_string(),
+            None => None,
         };
         let capture = capture_with_vice(
-            &boot_path,
+            path,
+            autostart_name.as_deref(),
             &snapshots,
             options.seconds,
             options.sample_hz,
@@ -272,6 +275,10 @@ fn analyze(path: &str, options: &AnalyzeOptions) -> Result<(), Box<dyn std::erro
         reports.join("blueprint.md"),
         blueprint_markdown(&session, Some(&disk_info), &directory),
     )?;
+    fs::write(
+        reports.join("open-questions.md"),
+        open_questions_markdown(&session),
+    )?;
 
     println!("wrote {}", reports.join("blueprint.md").display());
     Ok(())
@@ -300,7 +307,7 @@ struct ViceCapture {
 #[derive(Debug, Clone)]
 struct HardwareSample {
     index: usize,
-    elapsed_ms: u128,
+    frame: u64,
     pc: u16,
     vic: VicState,
     sid_registers: [u8; 25],
@@ -309,8 +316,8 @@ struct HardwareSample {
 
 #[derive(Debug, Clone)]
 struct InputStep {
-    start_ms: u128,
-    end_ms: u128,
+    start_frame: u64,
+    end_frame: u64,
     port: u16,
     value: u16,
     label: &'static str,
@@ -318,7 +325,7 @@ struct InputStep {
 
 #[derive(Debug, Clone)]
 struct InputEvent {
-    elapsed_ms: u128,
+    frame: u64,
     port: u16,
     value: u16,
     label: String,
@@ -471,8 +478,7 @@ fn write_emulator_json(out: &mut String, vice_capture: Option<&ViceCapture>) {
     out.push_str("  },\n");
 }
 
-fn resolve_boot_path(
-    out: &Path,
+fn resolve_file_name(
     directory: &[c64re_d64::DirectoryEntry],
     wanted: &str,
 ) -> Result<String, Box<dyn std::error::Error>> {
@@ -494,30 +500,29 @@ fn resolve_boot_path(
         )
         .into());
     }
-    let entry = matches[0];
-    let safe_name = safe_filename(&entry.name);
-    let relative_path = format!(
-        "disk/files/{safe_name}.{}",
-        entry.file_type.as_str().to_ascii_lowercase()
-    );
-    let path = out.join(&relative_path);
-    if !path.exists() {
-        return Err(format!("extracted file not found at {}", path.display()).into());
-    }
-    Ok(path.to_string_lossy().to_string())
+    Ok(matches[0].name.clone())
 }
 
 fn capture_with_vice(
     disk_path: &str,
+    autostart_name: Option<&str>,
     snapshots: &Path,
     seconds: u64,
     sample_hz: u64,
     autoplay: bool,
     addr: &str,
 ) -> Result<ViceCapture, Box<dyn std::error::Error>> {
-    let mut child = launch_vice(disk_path, addr)?;
-    let result =
-        capture_with_running_vice(&mut child, snapshots, seconds, sample_hz, autoplay, addr);
+    let mut child = launch_vice(addr)?;
+    let result = capture_with_running_vice(
+        &mut child,
+        snapshots,
+        seconds,
+        sample_hz,
+        autoplay,
+        disk_path,
+        autostart_name,
+        addr,
+    );
 
     if result.is_ok() {
         if let Ok(mut monitor) = ViceMonitor::connect(addr) {
@@ -532,7 +537,10 @@ fn capture_with_vice(
     result
 }
 
-fn launch_vice(boot_path: &str, addr: &str) -> Result<Child, Box<dyn std::error::Error>> {
+/// Launch VICE with the binary monitor only. The machine boots to the KERNAL
+/// in a canonical state; the game is attached and autostarted through the
+/// monitor so capture starts from a deterministic point.
+fn launch_vice(addr: &str) -> Result<Child, Box<dyn std::error::Error>> {
     let monitor_addr = if addr.contains("://") {
         addr.to_string()
     } else {
@@ -544,12 +552,13 @@ fn launch_vice(boot_path: &str, addr: &str) -> Result<Child, Box<dyn std::error:
             "-default",
             "-warp",
             "-silent",
+            "-drive8type",
+            "1541",
             "-controlport2device",
             "1",
             "-binarymonitor",
             "-binarymonitoraddress",
             &monitor_addr,
-            boot_path,
         ])
         .stdin(Stdio::null())
         .stdout(Stdio::null())
@@ -557,23 +566,45 @@ fn launch_vice(boot_path: &str, addr: &str) -> Result<Child, Box<dyn std::error:
         .spawn()?)
 }
 
+#[allow(clippy::too_many_arguments)]
 fn capture_with_running_vice(
     child: &mut Child,
     snapshots: &Path,
     seconds: u64,
     sample_hz: u64,
     autoplay: bool,
+    disk_path: &str,
+    autostart_name: Option<&str>,
     addr: &str,
 ) -> Result<ViceCapture, Box<dyn std::error::Error>> {
     let mut monitor = connect_with_retry(addr, Duration::from_secs(10))?;
     monitor.ping()?;
+    monitor.set_read_timeout(Duration::from_secs(10))?;
+
+    // 1. Deterministic boot: power-cycle, then autostart the disk image
+    // through the monitor. `autostart` re-enters the monitor when the load
+    // finishes, giving a fixed sync point regardless of wall-clock drift.
+    monitor.power_cycle()?;
+    monitor.drain_events();
+    let autostart_target = match autostart_name {
+        Some(name) => format!("{disk_path}:{name}"),
+        None => disk_path.to_string(),
+    };
+    monitor.autostart(&autostart_target, true, 0)?;
+    let sync = monitor.wait_for_stop()?;
+    let mut frame = 0_u64;
+    let pc0 = monitor.registers()?.pc;
+    println!("autostart sync at pc=${pc0:04x} ({sync:?})");
+
+    // 2. Frame stepping: checkpoint on the KERNAL IRQ entry ($EA31) so each
+    // stop is one frame (PAL: 50 IRQs/s). Input is scheduled by frame number.
     let input_script = autoplay.then(|| default_autoplay_script(seconds));
     let mut current_joy2 = None;
     let mut input_events = Vec::new();
     if autoplay {
         apply_joyport(
             &mut monitor,
-            0,
+            frame,
             2,
             0,
             "neutral",
@@ -581,39 +612,41 @@ fn capture_with_running_vice(
             &mut input_events,
         )?;
     }
-    monitor.continue_run()?;
+    let frame_cp = monitor.breakpoint_set(0xea31)?;
 
-    let start = Instant::now();
-    let run_for = Duration::from_secs(seconds);
-    let sample_interval = sample_interval(sample_hz);
+    let total_frames = seconds * 50; // PAL
+    let sample_every = sample_every_frames(sample_hz);
     let mut samples = Vec::new();
-    while start.elapsed() < run_for {
+    while frame < total_frames {
         if let Some(status) = child.try_wait()? {
             return Err(format!("VICE exited early with status {status}").into());
         }
-        thread::sleep(sample_interval.min(run_for.saturating_sub(start.elapsed())));
-        if start.elapsed() <= run_for {
-            let elapsed_ms = start.elapsed().as_millis();
-            if let Some(script) = &input_script {
-                let (port, value, label) = desired_joy_value(script, elapsed_ms);
-                apply_joyport(
-                    &mut monitor,
-                    elapsed_ms,
-                    port,
-                    value,
-                    label,
-                    &mut current_joy2,
-                    &mut input_events,
-                )?;
+        match monitor.continue_to_stop() {
+            Ok(StopReason::Stopped(_)) => {}
+            Ok(reason) => {
+                return Err(format!("unexpected stop reason {reason:?}").into());
             }
-            samples.push(read_hardware_sample(
+            Err(err) => return Err(Box::new(err)),
+        }
+        frame += 1;
+
+        if let Some(script) = &input_script {
+            let (port, value, label) = desired_joy_value(script, frame);
+            apply_joyport(
                 &mut monitor,
-                samples.len(),
-                elapsed_ms,
-            )?);
-            monitor.continue_run()?;
+                frame,
+                port,
+                value,
+                label,
+                &mut current_joy2,
+                &mut input_events,
+            )?;
+        }
+        if frame.is_multiple_of(sample_every) {
+            samples.push(read_hardware_sample(&mut monitor, samples.len(), frame)?);
         }
     }
+    monitor.checkpoint_delete(frame_cp)?;
 
     let registers = monitor.registers()?;
     let reset_vector = monitor.read_memory(0xfffc, 0xfffd)?;
@@ -650,18 +683,19 @@ fn capture_with_running_vice(
     })
 }
 
-fn sample_interval(sample_hz: u64) -> Duration {
+/// Frames between hardware samples (PAL runs 50 IRQ frames per second).
+fn sample_every_frames(sample_hz: u64) -> u64 {
     if sample_hz == 0 {
-        Duration::from_secs(1)
+        1
     } else {
-        Duration::from_micros(1_000_000 / sample_hz)
+        50u64.saturating_div(sample_hz).max(1)
     }
 }
 
 fn read_hardware_sample(
     monitor: &mut ViceMonitor,
     index: usize,
-    elapsed_ms: u128,
+    frame: u64,
 ) -> Result<HardwareSample, Box<dyn std::error::Error>> {
     let registers = monitor.registers()?;
     let vic_registers = monitor.read_memory(0xd000, 0xd02e)?;
@@ -671,7 +705,7 @@ fn read_hardware_sample(
         .copied()
         .unwrap_or_default();
     let sid_registers = fixed_25(&monitor.read_memory(0xd400, 0xd418)?);
-    let vic = parse_vic_state(&vic_registers, bank_select);
+    let vic = parse_vic_state(&vic_registers, bank_select & 0x03);
     let sprite_pointers = fixed_8(&monitor.read_memory(
         vic.sprite_pointer_table(),
         vic.sprite_pointer_table().wrapping_add(7),
@@ -679,7 +713,7 @@ fn read_hardware_sample(
 
     Ok(HardwareSample {
         index,
-        elapsed_ms,
+        frame,
         pc: registers.pc,
         vic,
         sid_registers,
@@ -732,31 +766,32 @@ fn fixed_25(bytes: &[u8]) -> [u8; 25] {
     out
 }
 
+/// Default autoplay script, scheduled in frames at PAL rate (50 frames/s).
 fn default_autoplay_script(seconds: u64) -> Vec<InputStep> {
     let mut steps = Vec::new();
-    let total_ms = u128::from(seconds) * 1000;
+    let total_frames = seconds * 50;
     let pattern = [
-        ("fire", 0x10_u16, 500_u128),
-        ("neutral", 0x00_u16, 500),
-        ("right", 0x08_u16, 800),
-        ("fire", 0x10_u16, 300),
-        ("neutral", 0x00_u16, 400),
-        ("left", 0x04_u16, 800),
-        ("up", 0x01_u16, 500),
-        ("down", 0x02_u16, 500),
-        ("neutral", 0x00_u16, 700),
+        ("fire", 0x10_u16, 25_u64),
+        ("neutral", 0x00_u16, 25),
+        ("right", 0x08_u16, 40),
+        ("fire", 0x10_u16, 15),
+        ("neutral", 0x00_u16, 20),
+        ("left", 0x04_u16, 40),
+        ("up", 0x01_u16, 25),
+        ("down", 0x02_u16, 25),
+        ("neutral", 0x00_u16, 35),
     ];
 
-    let mut cursor = 1500_u128;
-    while cursor < total_ms {
+    let mut cursor = 75_u64;
+    while cursor < total_frames {
         for &(label, value, duration) in &pattern {
-            if cursor >= total_ms {
+            if cursor >= total_frames {
                 break;
             }
-            let end = (cursor + duration).min(total_ms);
+            let end = (cursor + duration).min(total_frames);
             steps.push(InputStep {
-                start_ms: cursor,
-                end_ms: end,
+                start_frame: cursor,
+                end_frame: end,
                 port: 2,
                 value,
                 label,
@@ -768,17 +803,17 @@ fn default_autoplay_script(seconds: u64) -> Vec<InputStep> {
     steps
 }
 
-fn desired_joy_value(script: &[InputStep], elapsed_ms: u128) -> (u16, u16, &'static str) {
+fn desired_joy_value(script: &[InputStep], frame: u64) -> (u16, u16, &'static str) {
     script
         .iter()
-        .find(|step| elapsed_ms >= step.start_ms && elapsed_ms < step.end_ms)
+        .find(|step| frame >= step.start_frame && frame < step.end_frame)
         .map(|step| (step.port, step.value, step.label))
         .unwrap_or((2, 0, "neutral"))
 }
 
 fn apply_joyport(
     monitor: &mut ViceMonitor,
-    elapsed_ms: u128,
+    frame: u64,
     port: u16,
     value: u16,
     label: &str,
@@ -800,7 +835,7 @@ fn apply_joyport(
     };
     *current_joy2 = Some(value);
     input_events.push(InputEvent {
-        elapsed_ms,
+        frame,
         port: applied_port,
         value,
         label: label.to_string(),
@@ -888,7 +923,7 @@ fn hardware_samples_json(samples: &[HardwareSample]) -> String {
         }
         out.push_str("  {\n");
         out.push_str(&format!("    \"index\": {},\n", sample.index));
-        out.push_str(&format!("    \"elapsed_ms\": {},\n", sample.elapsed_ms));
+        out.push_str(&format!("    \"frame\": {},\n", sample.frame));
         out.push_str(&format!("    \"pc\": {},\n", sample.pc));
         out.push_str("    \"vic\": {\n");
         out.push_str(&format!(
@@ -961,7 +996,7 @@ fn hardware_samples_json(samples: &[HardwareSample]) -> String {
 fn hardware_samples_markdown(samples: &[HardwareSample]) -> String {
     let mut out = String::new();
     out.push_str("# Hardware Samples\n\n");
-    out.push_str("Periodic VICE binary-monitor polls of VIC-II, SID, and sprite pointer state. Each sample briefly stops the emulator, reads state, then resumes execution.\n\n");
+    out.push_str("Frame-stepped VICE binary-monitor polls of VIC-II, SID, and sprite pointer state. Each sample stops the emulator at the KERNAL IRQ entry (one PAL frame), reads state, then resumes.\n\n");
     out.push_str(&format!("- Samples: {}\n", samples.len()));
     if let Some(first) = samples.first() {
         out.push_str(&format!(
@@ -978,13 +1013,13 @@ fn hardware_samples_markdown(samples: &[HardwareSample]) -> String {
         ));
     }
     out.push('\n');
-    out.push_str("| # | ms | PC | D018 | screen | charset | sprites enabled | sprite pointers | bg | SID nonzero |\n");
+    out.push_str("| # | frame | PC | D018 | screen | charset | sprites enabled | sprite pointers | bg | SID nonzero |\n");
     out.push_str("| ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | ---: | ---: |\n");
     for sample in samples.iter().take(80) {
         out.push_str(&format!(
             "| {} | {} | {} | ${:02x} | {} | {} | {} | `{}` | ${:02x} | {} |\n",
             sample.index,
-            sample.elapsed_ms,
+            sample.frame,
             hex16(sample.pc),
             sample.vic.memory_setup_d018,
             hex16(sample.vic.screen_base()),
@@ -1016,7 +1051,7 @@ fn input_events_json(events: &[InputEvent]) -> String {
             out.push_str(",\n");
         }
         out.push_str("  {\n");
-        out.push_str(&format!("    \"elapsed_ms\": {},\n", event.elapsed_ms));
+        out.push_str(&format!("    \"frame\": {},\n", event.frame));
         out.push_str(&format!("    \"port\": {},\n", event.port));
         out.push_str(&format!("    \"value\": {},\n", event.value));
         out.push_str(&format!(
@@ -1032,14 +1067,14 @@ fn input_events_json(events: &[InputEvent]) -> String {
 fn input_events_markdown(events: &[InputEvent]) -> String {
     let mut out = String::new();
     out.push_str("# Input Events\n\n");
-    out.push_str("Joystick events applied through VICE `JOYPORT_SET` during capture. Values use VICE's active-high joystick bitmask.\n\n");
+    out.push_str("Joystick events applied through VICE `JOYPORT_SET` during capture, scheduled by frame number (PAL, 50 frames/s). Values use VICE's active-high joystick bitmask.\n\n");
     out.push_str(&format!("- Events: {}\n\n", events.len()));
-    out.push_str("| ms | Port | Value | Label |\n");
+    out.push_str("| frame | Port | Value | Label |\n");
     out.push_str("| ---: | ---: | ---: | --- |\n");
     for event in events {
         out.push_str(&format!(
             "| {} | {} | ${:02x} | {} |\n",
-            event.elapsed_ms, event.port, event.value, event.label
+            event.frame, event.port, event.value, event.label
         ));
     }
     out
