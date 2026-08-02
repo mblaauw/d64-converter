@@ -1,0 +1,20 @@
+[package]
+name = "c64re-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+c64re-assets = { path = "../c64re-assets" }
+c64re-d64 = { path = "../c64re-d64" }
+c64re-report = { path = "../c64re-report" }
+c64re-trace = { path = "../c64re-trace" }
+c64re-vice-bmp = { path = "../c64re-vice-bmp" }
+c64re-vic = { path = "../c64re-vic" }
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "c64re"
+path = "src/main.rs"

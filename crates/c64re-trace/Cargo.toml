@@ -1,0 +1,13 @@
+[package]
+name = "c64re-trace"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+c64re-provenance = { path = "../c64re-provenance" }
+c64re-sid = { path = "../c64re-sid" }
+c64re-vic = { path = "../c64re-vic" }
+
+[lints]
+workspace = true

@@ -1,0 +1,12 @@
+[package]
+name = "c64re-report"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+c64re-d64 = { path = "../c64re-d64" }
+c64re-trace = { path = "../c64re-trace" }
+
+[lints]
+workspace = true

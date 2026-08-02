@@ -1,0 +1,11 @@
+[package]
+name = "c64re-disasm"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+c64re-provenance = { path = "../c64re-provenance" }
+
+[lints]
+workspace = true

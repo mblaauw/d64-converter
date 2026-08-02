@@ -1,0 +1,24 @@
+[workspace]
+members = [
+    "crates/c64re-assets",
+    "crates/c64re-cli",
+    "crates/c64re-d64",
+    "crates/c64re-disasm",
+    "crates/c64re-hybrid",
+    "crates/c64re-probes",
+    "crates/c64re-provenance",
+    "crates/c64re-report",
+    "crates/c64re-sid",
+    "crates/c64re-trace",
+    "crates/c64re-vice-bmp",
+    "crates/c64re-vic",
+]
+resolver = "2"
+
+[workspace.package]
+edition = "2021"
+license = "MIT OR Apache-2.0"
+version = "0.1.0"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
