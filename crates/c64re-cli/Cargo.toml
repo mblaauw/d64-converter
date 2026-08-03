@@ -6,11 +6,13 @@ license.workspace = true
 
 [dependencies]
 c64re-assets = { path = "../c64re-assets" }
+c64re-capture = { path = "../c64re-capture" }
 c64re-d64 = { path = "../c64re-d64" }
 c64re-report = { path = "../c64re-report" }
 c64re-trace = { path = "../c64re-trace" }
 c64re-vice-bmp = { path = "../c64re-vice-bmp" }
 c64re-vic = { path = "../c64re-vic" }
+clap = { version = "4", features = ["derive"] }
 
 [lints]
 workspace = true

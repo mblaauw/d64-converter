@@ -5,6 +5,8 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
+c64re-capture = { path = "../c64re-capture" }
+c64re-vic = { path = "../c64re-vic" }
 png = "0.17"
 
 [lints]

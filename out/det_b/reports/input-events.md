@@ -2,7 +2,7 @@
 
 Joystick events applied through VICE `JOYPORT_SET` during capture, scheduled by frame number (PAL, 50 frames/s). Values use VICE's active-high joystick bitmask.
 
-- Events: 18
+- Events: 14
 
 | frame | Port | Value | Label |
 | ---: | ---: | ---: | --- |
@@ -19,8 +19,4 @@ Joystick events applied through VICE `JOYPORT_SET` during capture, scheduled by 
 | 325 | 1 | $10 | fire |
 | 350 | 1 | $00 | neutral |
 | 375 | 1 | $08 | right |
-| 415 | 1 | $10 | fire |
-| 430 | 1 | $00 | neutral |
-| 450 | 1 | $04 | left |
-| 490 | 1 | $01 | up |
-| 500 | 1 | $00 | neutral |
+| 400 | 1 | $00 | neutral |

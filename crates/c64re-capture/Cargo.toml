@@ -1,0 +1,14 @@
+[package]
+name = "c64re-capture"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+c64re-d64 = { path = "../c64re-d64" }
+c64re-vice-bmp = { path = "../c64re-vice-bmp" }
+c64re-vic = { path = "../c64re-vic" }
+serde = { version = "1", features = ["derive"] }
+
+[lints]
+workspace = true

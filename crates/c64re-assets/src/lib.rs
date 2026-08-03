@@ -1,12 +1,13 @@
+pub mod extract;
+
 use std::fs::File;
 use std::io::BufWriter;
 use std::path::Path;
 
+pub use c64re_capture::{CHARSET_BYTES, SCREEN_BYTES, SPRITE_BYTES};
+
 pub const SPRITE_WIDTH: usize = 24;
 pub const SPRITE_HEIGHT: usize = 21;
-pub const SPRITE_BYTES: usize = 64;
-pub const CHARSET_BYTES: usize = 2048;
-pub const SCREEN_BYTES: usize = 1000;
 pub const SCREEN_WIDTH_CHARS: usize = 40;
 pub const SCREEN_HEIGHT_CHARS: usize = 25;
 

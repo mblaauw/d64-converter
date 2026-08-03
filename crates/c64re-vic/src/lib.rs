@@ -1,6 +1,6 @@
 /// Video mode derived from $D011 (bit 5 bitmap, bits 6-7 ECM) and
 /// $D016 (bit 4 multicolor).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
 pub enum DisplayMode {
     StandardText,
     MulticolorText,
@@ -21,7 +21,7 @@ impl DisplayMode {
     }
 }
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, serde::Serialize)]
 pub struct VicState {
     pub bank_select_dd00: u8,
     pub memory_setup_d018: u8,

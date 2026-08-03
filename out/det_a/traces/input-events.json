@@ -78,31 +78,7 @@
     "label": "right"
   },
   {
-    "frame": 415,
-    "port": 1,
-    "value": 16,
-    "label": "fire"
-  },
-  {
-    "frame": 430,
-    "port": 1,
-    "value": 0,
-    "label": "neutral"
-  },
-  {
-    "frame": 450,
-    "port": 1,
-    "value": 4,
-    "label": "left"
-  },
-  {
-    "frame": 490,
-    "port": 1,
-    "value": 1,
-    "label": "up"
-  },
-  {
-    "frame": 500,
+    "frame": 400,
     "port": 1,
     "value": 0,
     "label": "neutral"

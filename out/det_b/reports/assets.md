@@ -1,6 +1,6 @@
 # Observed Assets
 
-Assets extracted from `snapshots/vice-capture.ram` using sampled VIC-II state as the source of truth.
+Assets carved at observation time from sampled VIC-II state.
 
 - Manifest: `assets/manifest.json`
 - Screen blocks: 1

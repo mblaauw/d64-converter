@@ -2,7 +2,7 @@
 
 Frame-stepped VICE binary-monitor polls of VIC-II, SID, and sprite pointer state. Each sample stops the emulator at the KERNAL IRQ entry (one PAL frame), reads state, then resumes.
 
-- Samples: 50
+- Samples: 40
 - First screen base: $0c00
 - First charset base: $3000
 - First sprite pointer table: $0ff8
@@ -49,13 +49,3 @@ Frame-stepped VICE binary-monitor polls of VIC-II, SID, and sprite pointer state
 | 37 | 380 | $0002 | multicolor-bitmap | $3c | $0c00 | $3000 | 4 | $0c | 25 |
 | 38 | 390 | $0002 | multicolor-bitmap | $3c | $0c00 | $3000 | 4 | $0c | 25 |
 | 39 | 400 | $0002 | multicolor-bitmap | $3c | $0c00 | $3000 | 4 | $0c | 25 |
-| 40 | 410 | $0002 | multicolor-bitmap | $3c | $0c00 | $3000 | 4 | $0c | 25 |
-| 41 | 420 | $0002 | multicolor-bitmap | $3c | $0c00 | $3000 | 4 | $0c | 25 |
-| 42 | 430 | $0002 | multicolor-bitmap | $3c | $0c00 | $3000 | 4 | $0c | 25 |
-| 43 | 440 | $0002 | multicolor-bitmap | $3c | $0c00 | $3000 | 4 | $0c | 25 |
-| 44 | 450 | $0002 | multicolor-bitmap | $3c | $0c00 | $3000 | 4 | $0c | 25 |
-| 45 | 460 | $0002 | multicolor-bitmap | $3c | $0c00 | $3000 | 4 | $0c | 25 |
-| 46 | 470 | $0002 | multicolor-bitmap | $3c | $0c00 | $3000 | 4 | $0c | 25 |
-| 47 | 480 | $0002 | multicolor-bitmap | $3c | $0c00 | $3000 | 4 | $0c | 25 |
-| 48 | 490 | $0002 | multicolor-bitmap | $3c | $0c00 | $3000 | 4 | $0c | 25 |
-| 49 | 500 | $0002 | multicolor-bitmap | $3c | $0c00 | $3000 | 4 | $0c | 25 |

@@ -449,3 +449,115 @@ mod tests {
         assert_eq!(notes, b"hello world");
     }
 }
+
+/// Metadata derived from an extracted file's bytes.
+#[derive(Debug, Clone)]
+pub struct ExtractedFileMetadata {
+    pub name: String,
+    pub file_type: String,
+    pub path: String,
+    pub bytes: usize,
+    pub load_address: Option<u16>,
+    pub end_address_exclusive: Option<u16>,
+    pub checksum16: u16,
+    pub basic_sys: Option<u16>,
+}
+
+impl ExtractedFileMetadata {
+    pub fn from_bytes(entry: &DirectoryEntry, path: String, bytes: &[u8]) -> Self {
+        let load_address = (entry.file_type == FileType::Prg && bytes.len() >= 2)
+            .then(|| u16::from_le_bytes([bytes[0], bytes[1]]));
+        let payload_len = bytes.len().saturating_sub(2);
+        let end_address_exclusive =
+            load_address.map(|address| address.wrapping_add(payload_len as u16));
+        let checksum16 = bytes.iter().fold(0_u16, |checksum, &byte| {
+            checksum.wrapping_add(u16::from(byte))
+        });
+        let basic_sys = load_address.and_then(|address| detect_basic_sys(address, bytes));
+
+        Self {
+            name: entry.name.clone(),
+            file_type: entry.file_type.as_str().to_string(),
+            path,
+            bytes: bytes.len(),
+            load_address,
+            end_address_exclusive,
+            checksum16,
+            basic_sys,
+        }
+    }
+}
+
+/// Load a PRG (with its 2-byte load address prefix) into RAM.
+pub fn load_prg_into_ram(ram: &mut [u8], bytes: &[u8]) {
+    if bytes.len() < 2 {
+        return;
+    }
+    let load_address = usize::from(u16::from_le_bytes([bytes[0], bytes[1]]));
+    let payload = &bytes[2..];
+    let available = ram.len().saturating_sub(load_address);
+    let len = payload.len().min(available);
+    ram[load_address..load_address + len].copy_from_slice(&payload[..len]);
+}
+
+/// Detect a `SYS n` token in the first BASIC program line.
+pub fn detect_basic_sys(load_address: u16, bytes: &[u8]) -> Option<u16> {
+    if load_address != 0x0801 || bytes.len() < 6 {
+        return None;
+    }
+
+    let mut offset = 2;
+    while offset + 4 <= bytes.len() {
+        let next_line = u16::from_le_bytes([bytes[offset], bytes[offset + 1]]);
+        if next_line == 0 {
+            return None;
+        }
+        offset += 4;
+
+        while offset < bytes.len() && bytes[offset] != 0 {
+            if bytes[offset] == 0x9e {
+                return parse_decimal_after_sys(&bytes[offset + 1..]);
+            }
+            offset += 1;
+        }
+        offset += 1;
+    }
+
+    None
+}
+
+fn parse_decimal_after_sys(bytes: &[u8]) -> Option<u16> {
+    let mut value = 0_u16;
+    let mut found_digit = false;
+    for &byte in bytes {
+        if byte == 0 || byte == b':' {
+            break;
+        }
+        if byte.is_ascii_digit() {
+            found_digit = true;
+            value = value
+                .saturating_mul(10)
+                .saturating_add(u16::from(byte - b'0'));
+        } else if found_digit {
+            break;
+        }
+    }
+    found_digit.then_some(value)
+}
+
+/// Make a PETSCII name safe for a filesystem path.
+pub fn safe_filename(name: &str) -> String {
+    let mut out = String::new();
+    for ch in name.chars() {
+        if ch.is_ascii_alphanumeric() || ch == '-' || ch == '_' || ch == '.' {
+            out.push(ch.to_ascii_lowercase());
+        } else {
+            out.push('_');
+        }
+    }
+    if out.is_empty() {
+        "unnamed".to_string()
+    } else {
+        out
+    }
+}
