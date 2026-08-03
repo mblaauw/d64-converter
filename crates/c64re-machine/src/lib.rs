@@ -113,10 +113,12 @@ impl C64Bus {
                 }
             }
             0xe000..=0xffff => {
-                if self.port01 & 0x04 == 0 {
-                    self.ram[address]
-                } else {
+                // KERNAL is visible only when HIRAM (bit 1) AND CHAREN
+                // (bit 2) are both set; otherwise the RAM underneath shows.
+                if self.port01 & 0x02 != 0 && self.port01 & 0x04 != 0 {
                     self.kernal_rom[address - KERNAL_BASE]
+                } else {
+                    self.ram[address]
                 }
             }
             _ => 0,
@@ -149,7 +151,7 @@ impl C64Bus {
                     self.io[address - 0xd000] = value;
                 }
             }
-            0xe000..=0xffff if self.port01 & 0x04 == 0 => {
+            0xe000..=0xffff if self.port01 & 0x02 == 0 || self.port01 & 0x04 == 0 => {
                 self.ram[address] = value;
             }
             _ => {}
@@ -243,7 +245,11 @@ impl C64Machine {
     pub fn from_snapshot(ram: Vec<u8>, roms: &RomImages, pc: u16) -> Self {
         let mut image = [0_u8; MEM_SIZE];
         image.copy_from_slice(&ram[..ram.len().min(MEM_SIZE)]);
-        Self::new(image, roms, pc)
+        let mut machine = Self::new(image, roms, pc);
+        // Restore the CPU-port banking state captured in the snapshot
+        // (VICE ram-bank dumps include $01).
+        machine.cpu.bus.port01 = machine.cpu.bus.ram[0x0001];
+        machine
     }
 
     pub fn into_bus(self) -> C64Bus {

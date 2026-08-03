@@ -1,0 +1,99 @@
+{
+  "manifest_path": "assets/manifest.json",
+  "screens": [
+    {
+      "kind": "screen",
+      "address": 1024,
+      "address_hex": "$0400",
+      "sample_index": 0,
+      "path": "assets/screens/screen-0400.bin",
+      "preview_path": "assets/screens/screen-0400.png",
+      "note": "rendered in standard-text mode"
+    }
+  ],
+  "charsets": [
+    {
+      "kind": "charset",
+      "address": 4096,
+      "address_hex": "$1000",
+      "sample_index": 0,
+      "path": "assets/charsets/charset-1000.bin",
+      "preview_path": "assets/charsets/charset-1000.png",
+      "note": "character ROM (VIC bank 0/2 charset base)"
+    }
+  ],
+  "sprites": [
+    {
+      "kind": "sprite",
+      "address": 8192,
+      "address_hex": "$2000",
+      "sample_index": 0,
+      "path": "assets/sprites/sprite-2000-d6cd871366b74595.bin",
+      "preview_path": "assets/sprites/sprite-2000-d6cd871366b74595.png",
+      "note": "multicolor sprite"
+    },
+    {
+      "kind": "sprite",
+      "address": 8256,
+      "address_hex": "$2040",
+      "sample_index": 0,
+      "path": "assets/sprites/sprite-2040-28724edbecd54d20.bin",
+      "preview_path": "assets/sprites/sprite-2040-28724edbecd54d20.png",
+      "note": "multicolor sprite"
+    },
+    {
+      "kind": "sprite",
+      "address": 8320,
+      "address_hex": "$2080",
+      "sample_index": 0,
+      "path": "assets/sprites/sprite-2080-e038ab29f2f119fd.bin",
+      "preview_path": "assets/sprites/sprite-2080-e038ab29f2f119fd.png",
+      "note": "multicolor sprite"
+    },
+    {
+      "kind": "sprite",
+      "address": 8384,
+      "address_hex": "$20c0",
+      "sample_index": 0,
+      "path": "assets/sprites/sprite-20c0-9871d75ddc0729b6.bin",
+      "preview_path": "assets/sprites/sprite-20c0-9871d75ddc0729b6.png",
+      "note": "multicolor sprite"
+    },
+    {
+      "kind": "sprite",
+      "address": 8448,
+      "address_hex": "$2100",
+      "sample_index": 0,
+      "path": "assets/sprites/sprite-2100-35c2fb5e04a3145a.bin",
+      "preview_path": "assets/sprites/sprite-2100-35c2fb5e04a3145a.png",
+      "note": "multicolor sprite"
+    },
+    {
+      "kind": "sprite",
+      "address": 14720,
+      "address_hex": "$3980",
+      "sample_index": 0,
+      "path": "assets/sprites/sprite-3980-e81c7f3a46fd0825.bin",
+      "preview_path": "assets/sprites/sprite-3980-e81c7f3a46fd0825.png",
+      "note": "multicolor sprite"
+    },
+    {
+      "kind": "sprite",
+      "address": 0,
+      "address_hex": "$0000",
+      "sample_index": 0,
+      "path": "assets/sprites/sprite-0000-d5ed67388a9b96e3.bin",
+      "preview_path": "assets/sprites/sprite-0000-d5ed67388a9b96e3.png",
+      "note": "multicolor sprite"
+    },
+    {
+      "kind": "sprite",
+      "address": 4544,
+      "address_hex": "$11c0",
+      "sample_index": 0,
+      "path": "assets/sprites/sprite-11c0-e81c7f3a46fd0825.bin",
+      "preview_path": "assets/sprites/sprite-11c0-e81c7f3a46fd0825.png",
+      "note": "multicolor sprite"
+    }
+  ]
+}

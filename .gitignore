@@ -1,6 +1,7 @@
 /target/
 /out/ghostbusters
 /out/ikplus*
+/out/hoa_live
 *.d64
 *.D64
 /.DS_Store
