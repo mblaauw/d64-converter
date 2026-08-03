@@ -78,6 +78,7 @@ name = "c64re-capture"
 version = "0.1.0"
 dependencies = [
  "c64re-d64",
+ "c64re-machine",
  "c64re-provenance",
  "c64re-vic",
  "c64re-vice-bmp",
@@ -92,6 +93,7 @@ dependencies = [
  "c64re-capture",
  "c64re-d64",
  "c64re-disasm",
+ "c64re-machine",
  "c64re-probes",
  "c64re-provenance",
  "c64re-report",
@@ -99,6 +101,13 @@ dependencies = [
  "c64re-vic",
  "c64re-vice-bmp",
  "clap",
+]
+
+[[package]]
+name = "c64re-cpu"
+version = "0.1.0"
+dependencies = [
+ "c64re-provenance",
 ]
 
 [[package]]
@@ -115,6 +124,14 @@ dependencies = [
 [[package]]
 name = "c64re-hybrid"
 version = "0.1.0"
+
+[[package]]
+name = "c64re-machine"
+version = "0.1.0"
+dependencies = [
+ "c64re-cpu",
+ "c64re-provenance",
+]
 
 [[package]]
 name = "c64re-probes"

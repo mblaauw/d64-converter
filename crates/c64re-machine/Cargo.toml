@@ -1,0 +1,12 @@
+[package]
+name = "c64re-machine"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+c64re-cpu = { path = "../c64re-cpu" }
+c64re-provenance = { path = "../c64re-provenance" }
+
+[lints]
+workspace = true

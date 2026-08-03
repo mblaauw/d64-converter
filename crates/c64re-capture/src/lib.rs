@@ -912,3 +912,63 @@ pub fn collect_provenance(
     }
     Ok(provenance)
 }
+
+/// VICE adapter implementing the machine `Backend` trait.
+///
+/// VICE cannot report true per-byte provenance (it is not instrumented at
+/// that granularity), so this backend is the compatibility fallback: reads
+/// and writes go through the binary monitor, and the provenance map is only
+/// populated on demand with `read_mem` (marked as `cpu_read`) — executed
+/// bytes stay unmarked. The embedded `c64re-machine` core is the path for
+/// real provenance.
+pub struct ViceBackend {
+    monitor: ViceMonitor,
+    provenance: ProvenanceMap,
+}
+
+impl ViceBackend {
+    pub fn connect(addr: &str, read_timeout_ms: u64) -> Result<Self, Box<dyn std::error::Error>> {
+        let mut monitor = connect_with_retry(addr, Duration::from_secs(10))?;
+        monitor.ping()?;
+        monitor.set_read_timeout(Duration::from_millis(read_timeout_ms))?;
+        let _ = read_timeout_ms;
+        Ok(Self {
+            monitor,
+            provenance: ProvenanceMap::c64_ram(),
+        })
+    }
+}
+
+impl c64re_machine::Backend for ViceBackend {
+    fn pc(&mut self) -> u16 {
+        self.monitor.registers().map(|r| r.pc).unwrap_or_default()
+    }
+    fn set_pc(&mut self, pc: u16) {
+        let _ = self
+            .monitor
+            .set_registers_raw(&[c64re_vice_bmp::RegisterValue { id: 3, value: pc }]);
+    }
+    fn read_mem(&mut self, addr: u16) -> u8 {
+        let value = self
+            .monitor
+            .read_memory(addr, addr)
+            .map(|bytes| bytes.first().copied().unwrap_or(0))
+            .unwrap_or(0);
+        self.provenance.get_mut(addr).mark_cpu_read();
+        value
+    }
+    fn write_mem(&mut self, addr: u16, value: u8) {
+        let _ = self.monitor.write_memory(addr, &[value]);
+        self.provenance.get_mut(addr).mark_cpu_written();
+    }
+    fn run_cycles(&mut self, cycles: u64) {
+        // VICE steps instructions, not cycles; approximate with the PAL
+        // cycles-per-instruction average (about 3.4). This is a fallback
+        // path; the embedded core is cycle-exact.
+        let instructions = (cycles / 4).max(1) as u16;
+        let _ = self.monitor.step_instructions(instructions, false);
+    }
+    fn provenance(&self) -> &ProvenanceMap {
+        &self.provenance
+    }
+}

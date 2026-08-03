@@ -1,0 +1,11 @@
+[
+  {
+    "name": "GHOSTBUSTERS",
+    "file_type": "PRG",
+    "closed": true,
+    "locked": false,
+    "first_track": 5,
+    "first_sector": 0,
+    "blocks": 130
+  }
+]

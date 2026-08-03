@@ -766,11 +766,33 @@ fn json_string_array(values: &[String]) -> String {
 // Provenance
 // ---------------------------------------------------------------------------
 
-pub fn provenance_json(provenance: &ProvenanceMap) -> String {
-    let mut out = String::new();
-    out.push_str("{\n");
-    out.push_str("  \"executed_ranges\": [\n");
-    let ranges = executed_ranges(provenance);
+fn flag_ranges(provenance: &ProvenanceMap, flag: u8) -> Vec<(u16, u16)> {
+    let mut ranges = Vec::new();
+    let mut current: Option<(u16, u16)> = None;
+    for address in 0x0000_u32..0x1_0000 {
+        let byte = provenance.get(address as u16);
+        let matches = match flag {
+            0 => byte.executed,
+            1 => byte.cpu_read,
+            2 => byte.cpu_written,
+            _ => byte.write_then_execute,
+        };
+        if matches {
+            match &mut current {
+                Some((_, end)) => *end = address as u16,
+                None => current = Some((address as u16, address as u16)),
+            }
+        } else if let Some(range) = current.take() {
+            ranges.push(range);
+        }
+    }
+    if let Some(range) = current.take() {
+        ranges.push(range);
+    }
+    ranges
+}
+
+fn write_ranges_json(out: &mut String, ranges: &[(u16, u16)]) {
     for (index, (start, end)) in ranges.iter().enumerate() {
         if index > 0 {
             out.push_str(",\n");
@@ -781,6 +803,22 @@ pub fn provenance_json(provenance: &ProvenanceMap) -> String {
             hex16(*end)
         ));
     }
+}
+
+pub fn provenance_json(provenance: &ProvenanceMap) -> String {
+    let mut out = String::new();
+    out.push_str("{\n");
+    out.push_str("  \"executed_ranges\": [\n");
+    write_ranges_json(&mut out, &executed_ranges(provenance));
+    out.push_str("\n  ],\n");
+    out.push_str("  \"read_ranges\": [\n");
+    write_ranges_json(&mut out, &flag_ranges(provenance, 1));
+    out.push_str("\n  ],\n");
+    out.push_str("  \"written_ranges\": [\n");
+    write_ranges_json(&mut out, &flag_ranges(provenance, 2));
+    out.push_str("\n  ],\n");
+    out.push_str("  \"write_then_execute_ranges\": [\n");
+    write_ranges_json(&mut out, &flag_ranges(provenance, 3));
     out.push_str("\n  ]\n");
     out.push_str("}\n");
     out
@@ -789,25 +827,47 @@ pub fn provenance_json(provenance: &ProvenanceMap) -> String {
 pub fn provenance_markdown(provenance: &ProvenanceMap) -> String {
     let counts = provenance.counts();
     let ranges = executed_ranges(provenance);
+    let reads = flag_ranges(provenance, 1);
+    let writes = flag_ranges(provenance, 2);
+    let wte = flag_ranges(provenance, 3);
     let mut out = String::new();
     out.push_str("# Execution Provenance\n\n");
-    out.push_str("Approximate coverage map harvested from CpuHistory during a replay.\n\n");
+    out.push_str("Per-byte provenance: executed, read, written, and write-then-execute (self-modifying) ranges.\n\n");
     out.push_str(&format!("- Executed bytes: {}\n", counts.executed));
-    out.push_str(&format!("- Executed ranges: {}\n\n", ranges.len()));
-    out.push_str("| Range | Bytes |\n");
-    out.push_str("| --- | ---: |\n");
-    for (start, end) in ranges.iter().take(200) {
+    out.push_str(&format!("- CPU-read bytes: {}\n", counts.cpu_read));
+    out.push_str(&format!("- CPU-written bytes: {}\n", counts.cpu_written));
+    out.push_str(&format!(
+        "- Write-then-execute bytes: {}\n",
+        counts.write_then_execute
+    ));
+    out.push_str(&format!("- Executed ranges: {}\n", ranges.len()));
+    out.push_str(&format!("- Read ranges: {}\n", reads.len()));
+    out.push_str(&format!("- Written ranges: {}\n", writes.len()));
+    out.push_str(&format!("- Write-then-execute ranges: {}\n\n", wte.len()));
+    out.push_str("| Range | Bytes | Kind |\n");
+    out.push_str("| --- | ---: | --- |\n");
+    for (start, end) in ranges.iter().take(100) {
         out.push_str(&format!(
-            "| {}-{} | {} |\n",
+            "| {}-{} | {} | executed |\n",
             hex16(*start),
             hex16(*end),
             end - start + 1
         ));
     }
-    if ranges.len() > 200 {
+    for (start, end) in writes.iter().take(50) {
         out.push_str(&format!(
-            "\nOnly the first 200 ranges are shown. {} omitted.\n",
-            ranges.len() - 200
+            "| {}-{} | {} | written |\n",
+            hex16(*start),
+            hex16(*end),
+            end - start + 1
+        ));
+    }
+    for (start, end) in wte.iter().take(50) {
+        out.push_str(&format!(
+            "| {}-{} | {} | write-then-execute |\n",
+            hex16(*start),
+            hex16(*end),
+            end - start + 1
         ));
     }
     out

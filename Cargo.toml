@@ -2,9 +2,11 @@
 members = [
     "crates/c64re-assets",
     "crates/c64re-cli",
+    "crates/c64re-cpu",
     "crates/c64re-d64",
     "crates/c64re-disasm",
     "crates/c64re-hybrid",
+    "crates/c64re-machine",
     "crates/c64re-probes",
     "crates/c64re-provenance",
     "crates/c64re-report",

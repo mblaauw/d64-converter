@@ -1,0 +1,135 @@
+{
+  "manifest_path": "assets/manifest.json",
+  "screens": [
+    {
+      "kind": "screen",
+      "address": 58368,
+      "address_hex": "$e400",
+      "sample_index": 0,
+      "path": "assets/screens/screen-e400.bin",
+      "preview_path": "assets/screens/screen-e400.png",
+      "note": "rendered in multicolor-text mode"
+    },
+    {
+      "kind": "screen",
+      "address": 34816,
+      "address_hex": "$8800",
+      "sample_index": 13,
+      "path": "assets/screens/screen-8800.bin",
+      "preview_path": "assets/screens/screen-8800.png",
+      "note": "rendered in multicolor-bitmap mode"
+    }
+  ],
+  "charsets": [
+    {
+      "kind": "charset",
+      "address": 57344,
+      "address_hex": "$e000",
+      "sample_index": 0,
+      "path": "assets/charsets/charset-e000.bin",
+      "preview_path": "assets/charsets/charset-e000.png",
+      "note": null
+    },
+    {
+      "kind": "charset",
+      "address": 45056,
+      "address_hex": "$b000",
+      "sample_index": 13,
+      "path": "assets/charsets/charset-b000.bin",
+      "preview_path": "assets/charsets/charset-b000.png",
+      "note": null
+    }
+  ],
+  "sprites": [
+    {
+      "kind": "sprite",
+      "address": 33280,
+      "address_hex": "$8200",
+      "sample_index": 52,
+      "path": "assets/sprites/sprite-8200-dbc1f47182dc2ac.bin",
+      "preview_path": "assets/sprites/sprite-8200-dbc1f47182dc2ac.png",
+      "note": null
+    },
+    {
+      "kind": "sprite",
+      "address": 33088,
+      "address_hex": "$8140",
+      "sample_index": 53,
+      "path": "assets/sprites/sprite-8140-9aae70a87932f45e.bin",
+      "preview_path": "assets/sprites/sprite-8140-9aae70a87932f45e.png",
+      "note": null
+    },
+    {
+      "kind": "sprite",
+      "address": 32960,
+      "address_hex": "$80c0",
+      "sample_index": 54,
+      "path": "assets/sprites/sprite-80c0-76f12dabea295436.bin",
+      "preview_path": "assets/sprites/sprite-80c0-76f12dabea295436.png",
+      "note": null
+    },
+    {
+      "kind": "sprite",
+      "address": 34432,
+      "address_hex": "$8680",
+      "sample_index": 55,
+      "path": "assets/sprites/sprite-8680-1de97a7625be7ad5.bin",
+      "preview_path": "assets/sprites/sprite-8680-1de97a7625be7ad5.png",
+      "note": null
+    },
+    {
+      "kind": "sprite",
+      "address": 32896,
+      "address_hex": "$8080",
+      "sample_index": 56,
+      "path": "assets/sprites/sprite-8080-8ee8313fba82f973.bin",
+      "preview_path": "assets/sprites/sprite-8080-8ee8313fba82f973.png",
+      "note": null
+    },
+    {
+      "kind": "sprite",
+      "address": 33216,
+      "address_hex": "$81c0",
+      "sample_index": 58,
+      "path": "assets/sprites/sprite-81c0-eea5aa86f7f84a59.bin",
+      "preview_path": "assets/sprites/sprite-81c0-eea5aa86f7f84a59.png",
+      "note": null
+    },
+    {
+      "kind": "sprite",
+      "address": 34560,
+      "address_hex": "$8700",
+      "sample_index": 59,
+      "path": "assets/sprites/sprite-8700-6997102d93d75705.bin",
+      "preview_path": "assets/sprites/sprite-8700-6997102d93d75705.png",
+      "note": null
+    },
+    {
+      "kind": "sprite",
+      "address": 34624,
+      "address_hex": "$8740",
+      "sample_index": 59,
+      "path": "assets/sprites/sprite-8740-fe621ae2ecdc9372.bin",
+      "preview_path": "assets/sprites/sprite-8740-fe621ae2ecdc9372.png",
+      "note": null
+    },
+    {
+      "kind": "sprite",
+      "address": 34688,
+      "address_hex": "$8780",
+      "sample_index": 59,
+      "path": "assets/sprites/sprite-8780-eeeee4c34aa810fc.bin",
+      "preview_path": "assets/sprites/sprite-8780-eeeee4c34aa810fc.png",
+      "note": null
+    },
+    {
+      "kind": "sprite",
+      "address": 34752,
+      "address_hex": "$87c0",
+      "sample_index": 59,
+      "path": "assets/sprites/sprite-87c0-1de3b7395dd3107e.bin",
+      "preview_path": "assets/sprites/sprite-87c0-1de3b7395dd3107e.png",
+      "note": null
+    }
+  ]
+}

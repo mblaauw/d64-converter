@@ -1,0 +1,70 @@
+{
+  "source_path": "/Users/mich/Downloads/Heart of Africa.d64",
+  "analysis_version": 1,
+  "emulator": {
+    "status": "captured",
+    "engine": "VICE x64sc binary monitor",
+    "address": "127.0.0.1:6502",
+    "seconds": 20,
+    "registers": {
+      "pc": 3405,
+      "a": 55,
+      "x": 0,
+      "y": 19,
+      "sp": 248,
+      "status": 32
+    },
+    "reset_vector": 65433,
+    "ram_snapshot_path": "snapshots/vice-capture.ram",
+    "ram_bytes": 65536,
+    "hardware_samples_path": "traces/hardware-samples.json",
+    "hardware_sample_count": 100,
+    "input_events_path": "traces/input-events.json",
+    "input_event_count": 36,
+    "game_start_frame": 1148,
+    "sid_writes_path": null,
+    "sid_write_count": 0
+  },
+  "extracted_files": [
+    {
+      "name": "----------------",
+      "file_type": "DEL",
+      "path": "disk/files/----------------.del",
+      "bytes": 508,
+      "load_address": null,
+      "end_address_exclusive": null,
+      "checksum16": 11971,
+      "basic_sys": null
+    },
+    {
+      "name": "EA",
+      "file_type": "PRG",
+      "path": "disk/files/ea.prg",
+      "bytes": 355,
+      "load_address": 247,
+      "end_address_exclusive": 600,
+      "checksum16": 18880,
+      "basic_sys": null
+    },
+    {
+      "name": "LOADER",
+      "file_type": "PRG",
+      "path": "disk/files/loader.prg",
+      "bytes": 4997,
+      "load_address": 65232,
+      "end_address_exclusive": 4691,
+      "checksum16": 18206,
+      "basic_sys": null
+    },
+    {
+      "name": "----------------",
+      "file_type": "DEL",
+      "path": "disk/files/----------------.del",
+      "bytes": 508,
+      "load_address": null,
+      "end_address_exclusive": null,
+      "checksum16": 11971,
+      "basic_sys": null
+    }
+  ]
+}

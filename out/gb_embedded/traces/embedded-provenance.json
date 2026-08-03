@@ -1,0 +1,57 @@
+{
+  "executed_ranges": [
+    { "start": 0, "end": 2, "start_hex": "$0000", "end_hex": "$0002" },
+    { "start": 58648, "end": 58713, "start_hex": "$e518", "end_hex": "$e559" },
+    { "start": 58784, "end": 58803, "start_hex": "$e5a0", "end_hex": "$e5b3" },
+    { "start": 61070, "end": 61078, "start_hex": "$ee8e", "end_hex": "$ee96" },
+    { "start": 64789, "end": 64815, "start_hex": "$fd15", "end_hex": "$fd2f" },
+    { "start": 64931, "end": 65003, "start_hex": "$fda3", "end_hex": "$fdeb" },
+    { "start": 65011, "end": 65016, "start_hex": "$fdf3", "end_hex": "$fdf8" },
+    { "start": 65126, "end": 65134, "start_hex": "$fe66", "end_hex": "$fe6e" },
+    { "start": 65352, "end": 65367, "start_hex": "$ff48", "end_hex": "$ff57" },
+    { "start": 65390, "end": 65407, "start_hex": "$ff6e", "end_hex": "$ff7f" },
+    { "start": 65535, "end": 65535, "start_hex": "$ffff", "end_hex": "$ffff" }
+  ],
+  "read_ranges": [
+    { "start": 0, "end": 0, "start_hex": "$0000", "end_hex": "$0000" },
+    { "start": 195, "end": 196, "start_hex": "$00c3", "end_hex": "$00c4" },
+    { "start": 500, "end": 503, "start_hex": "$01f4", "end_hex": "$01f7" },
+    { "start": 507, "end": 507, "start_hex": "$01fb", "end_hex": "$01fb" },
+    { "start": 648, "end": 648, "start_hex": "$0288", "end_hex": "$0288" },
+    { "start": 678, "end": 678, "start_hex": "$02a6", "end_hex": "$02a6" },
+    { "start": 790, "end": 791, "start_hex": "$0316", "end_hex": "$0317" },
+    { "start": 819, "end": 819, "start_hex": "$0333", "end_hex": "$0333" },
+    { "start": 35506, "end": 35506, "start_hex": "$8ab2", "end_hex": "$8ab2" },
+    { "start": 56334, "end": 56334, "start_hex": "$dc0e", "end_hex": "$dc0e" },
+    { "start": 56576, "end": 56576, "start_hex": "$dd00", "end_hex": "$dd00" },
+    { "start": 60639, "end": 60647, "start_hex": "$ecdf", "end_hex": "$ece7" },
+    { "start": 64847, "end": 64847, "start_hex": "$fd4f", "end_hex": "$fd4f" },
+    { "start": 65534, "end": 65535, "start_hex": "$fffe", "end_hex": "$ffff" }
+  ],
+  "written_ranges": [
+    { "start": 0, "end": 1, "start_hex": "$0000", "end_hex": "$0001" },
+    { "start": 153, "end": 154, "start_hex": "$0099", "end_hex": "$009a" },
+    { "start": 195, "end": 196, "start_hex": "$00c3", "end_hex": "$00c4" },
+    { "start": 204, "end": 205, "start_hex": "$00cc", "end_hex": "$00cd" },
+    { "start": 207, "end": 207, "start_hex": "$00cf", "end_hex": "$00cf" },
+    { "start": 217, "end": 511, "start_hex": "$00d9", "end_hex": "$01ff" },
+    { "start": 646, "end": 646, "start_hex": "$0286", "end_hex": "$0286" },
+    { "start": 649, "end": 649, "start_hex": "$0289", "end_hex": "$0289" },
+    { "start": 651, "end": 652, "start_hex": "$028b", "end_hex": "$028c" },
+    { "start": 655, "end": 657, "start_hex": "$028f", "end_hex": "$0291" },
+    { "start": 819, "end": 819, "start_hex": "$0333", "end_hex": "$0333" },
+    { "start": 35506, "end": 35506, "start_hex": "$8ab2", "end_hex": "$8ab2" },
+    { "start": 53286, "end": 53294, "start_hex": "$d026", "end_hex": "$d02e" },
+    { "start": 54296, "end": 54296, "start_hex": "$d418", "end_hex": "$d418" },
+    { "start": 56320, "end": 56320, "start_hex": "$dc00", "end_hex": "$dc00" },
+    { "start": 56322, "end": 56325, "start_hex": "$dc02", "end_hex": "$dc05" },
+    { "start": 56333, "end": 56335, "start_hex": "$dc0d", "end_hex": "$dc0f" },
+    { "start": 56576, "end": 56576, "start_hex": "$dd00", "end_hex": "$dd00" },
+    { "start": 56578, "end": 56579, "start_hex": "$dd02", "end_hex": "$dd03" },
+    { "start": 56589, "end": 56591, "start_hex": "$dd0d", "end_hex": "$dd0f" },
+    { "start": 64847, "end": 64847, "start_hex": "$fd4f", "end_hex": "$fd4f" }
+  ],
+  "write_then_execute_ranges": [
+    { "start": 0, "end": 1, "start_hex": "$0000", "end_hex": "$0001" }
+  ]
+}

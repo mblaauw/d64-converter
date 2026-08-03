@@ -5,6 +5,7 @@ use clap::{Args, Parser, Subcommand};
 
 use c64re_capture::{capture_with_vice, resolve_file_name};
 use c64re_d64::{load_prg_into_ram, safe_filename, D64Image, ExtractedFileMetadata};
+use c64re_machine::Backend as _;
 use c64re_report::{
     blueprint_markdown, directory_json, disk_info_json, hardware_samples_json,
     hardware_samples_markdown, input_events_json, input_events_markdown, memory_map_markdown,
@@ -70,6 +71,13 @@ struct AnalyzeArgs {
     /// Disassemble the executed code (coverage-seeded linear sweep).
     #[arg(long)]
     disasm: bool,
+    /// Run the embedded 6502 core against the captured RAM snapshot
+    /// (true per-byte provenance, no emulator instrumentation).
+    #[arg(long)]
+    embedded: bool,
+    /// Directory containing the system ROM images (default: VICE share).
+    #[arg(long)]
+    rom_dir: Option<std::path::PathBuf>,
     /// Autostart via VICE command line (for fastloader games).
     #[arg(long)]
     cmdline_autostart: bool,
@@ -267,6 +275,46 @@ fn analyze(args: &AnalyzeArgs) -> Result<(), Box<dyn std::error::Error>> {
             session.notes.push(format!(
                 "Applied {} joystick input events from the default autoplay script.",
                 capture.input_events.len()
+            ));
+        }
+        if args.embedded {
+            let rom_dir = match &args.rom_dir {
+                Some(dir) => dir.clone(),
+                None => c64re_machine::discover_vice_rom_dir()
+                    .ok_or("system ROMs not found; pass --rom-dir (VICE share/C64)")?,
+            };
+            let roms = c64re_machine::RomImages::load_from_vice_share(&rom_dir)?;
+            let ram = fs::read(snapshots.join("vice-capture.ram"))?;
+            let mut machine = c64re_machine::C64Machine::from_snapshot(ram, &roms, capture.pc);
+            machine.run_cycles(2_000_000); // ~1 second of PAL cycles
+            let provenance = machine.provenance().clone();
+            let counts = provenance.counts();
+            fs::write(
+                traces.join("embedded-provenance.json"),
+                c64re_report::provenance_json(&provenance),
+            )?;
+            fs::write(
+                reports.join("embedded-provenance.md"),
+                c64re_report::provenance_markdown(&provenance),
+            )?;
+            session.notes.push(format!(
+                "Embedded 6502 core: {} executed bytes across {} ranges (true per-byte provenance).",
+                counts.executed,
+                c64re_report::provenance_markdown(&provenance).lines().count()
+            ));
+            let ram = machine.ram_snapshot();
+            let lines = c64re_disasm::disassemble_executed(ram, &provenance, 300);
+            fs::write(
+                traces.join("embedded-disassembly.json"),
+                c64re_report::disassembly_json(&lines),
+            )?;
+            fs::write(
+                reports.join("embedded-disassembly.md"),
+                c64re_report::disassembly_markdown(&lines, "Embedded Executed Code"),
+            )?;
+            session.notes.push(format!(
+                "Embedded disassembly: {} executed instructions.",
+                lines.len()
             ));
         }
         if args.probe || args.provenance || args.disasm {

@@ -1,0 +1,18 @@
+[
+  {
+    "address": 62784,
+    "address_hex": "$f540",
+    "bytes": [44, 128, 221],
+    "mnemonic": "BIT",
+    "mode": "absolute",
+    "operand": "$dd80"
+  },
+  {
+    "address": 62787,
+    "address_hex": "$f543",
+    "bytes": [240, 251],
+    "mnemonic": "BEQ",
+    "mode": "relative",
+    "operand": "$f540"
+  }
+]

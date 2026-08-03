@@ -9,6 +9,7 @@ c64re-assets = { path = "../c64re-assets" }
 c64re-capture = { path = "../c64re-capture" }
 c64re-d64 = { path = "../c64re-d64" }
 c64re-disasm = { path = "../c64re-disasm" }
+c64re-machine = { path = "../c64re-machine" }
 c64re-probes = { path = "../c64re-probes" }
 c64re-provenance = { path = "../c64re-provenance" }
 c64re-report = { path = "../c64re-report" }
