@@ -1,0 +1,826 @@
+[
+  {
+    "address": 58451,
+    "address_hex": "$e453",
+    "bytes": [165, 21],
+    "mnemonic": "LDA",
+    "mode": "zeropage",
+    "operand": "$15"
+  },
+  {
+    "address": 58453,
+    "address_hex": "$e455",
+    "bytes": [240, 252],
+    "mnemonic": "BEQ",
+    "mode": "relative",
+    "operand": "$e453"
+  },
+  {
+    "address": 58463,
+    "address_hex": "$e45f",
+    "bytes": [165, 25],
+    "mnemonic": "LDA",
+    "mode": "zeropage",
+    "operand": "$19"
+  },
+  {
+    "address": 58465,
+    "address_hex": "$e461",
+    "bytes": [240, 252],
+    "mnemonic": "BEQ",
+    "mode": "relative",
+    "operand": "$e45f"
+  },
+  {
+    "address": 58870,
+    "address_hex": "$e5f6",
+    "bytes": [185, 152, 7],
+    "mnemonic": "LDA",
+    "mode": "absolute,y",
+    "operand": "$0798,Y"
+  },
+  {
+    "address": 58873,
+    "address_hex": "$e5f9",
+    "bytes": [153, 192, 7],
+    "mnemonic": "STA",
+    "mode": "absolute,y",
+    "operand": "$07c0,Y"
+  },
+  {
+    "address": 58876,
+    "address_hex": "$e5fc",
+    "bytes": [185, 112, 7],
+    "mnemonic": "LDA",
+    "mode": "absolute,y",
+    "operand": "$0770,Y"
+  },
+  {
+    "address": 58879,
+    "address_hex": "$e5ff",
+    "bytes": [153, 152, 7],
+    "mnemonic": "STA",
+    "mode": "absolute,y",
+    "operand": "$0798,Y"
+  },
+  {
+    "address": 58882,
+    "address_hex": "$e602",
+    "bytes": [185, 72, 7],
+    "mnemonic": "LDA",
+    "mode": "absolute,y",
+    "operand": "$0748,Y"
+  },
+  {
+    "address": 58885,
+    "address_hex": "$e605",
+    "bytes": [153, 112, 7],
+    "mnemonic": "STA",
+    "mode": "absolute,y",
+    "operand": "$0770,Y"
+  },
+  {
+    "address": 58888,
+    "address_hex": "$e608",
+    "bytes": [185, 32, 7],
+    "mnemonic": "LDA",
+    "mode": "absolute,y",
+    "operand": "$0720,Y"
+  },
+  {
+    "address": 58891,
+    "address_hex": "$e60b",
+    "bytes": [153, 72, 7],
+    "mnemonic": "STA",
+    "mode": "absolute,y",
+    "operand": "$0748,Y"
+  },
+  {
+    "address": 58894,
+    "address_hex": "$e60e",
+    "bytes": [185, 248, 6],
+    "mnemonic": "LDA",
+    "mode": "absolute,y",
+    "operand": "$06f8,Y"
+  },
+  {
+    "address": 58897,
+    "address_hex": "$e611",
+    "bytes": [153, 32, 7],
+    "mnemonic": "STA",
+    "mode": "absolute,y",
+    "operand": "$0720,Y"
+  },
+  {
+    "address": 58900,
+    "address_hex": "$e614",
+    "bytes": [185, 208, 6],
+    "mnemonic": "LDA",
+    "mode": "absolute,y",
+    "operand": "$06d0,Y"
+  },
+  {
+    "address": 58903,
+    "address_hex": "$e617",
+    "bytes": [153, 248, 6],
+    "mnemonic": "STA",
+    "mode": "absolute,y",
+    "operand": "$06f8,Y"
+  },
+  {
+    "address": 58906,
+    "address_hex": "$e61a",
+    "bytes": [185, 168, 6],
+    "mnemonic": "LDA",
+    "mode": "absolute,y",
+    "operand": "$06a8,Y"
+  },
+  {
+    "address": 58909,
+    "address_hex": "$e61d",
+    "bytes": [153, 208, 6],
+    "mnemonic": "STA",
+    "mode": "absolute,y",
+    "operand": "$06d0,Y"
+  },
+  {
+    "address": 58912,
+    "address_hex": "$e620",
+    "bytes": [185, 128, 6],
+    "mnemonic": "LDA",
+    "mode": "absolute,y",
+    "operand": "$0680,Y"
+  },
+  {
+    "address": 58915,
+    "address_hex": "$e623",
+    "bytes": [153, 168, 6],
+    "mnemonic": "STA",
+    "mode": "absolute,y",
+    "operand": "$06a8,Y"
+  },
+  {
+    "address": 58918,
+    "address_hex": "$e626",
+    "bytes": [185, 88, 6],
+    "mnemonic": "LDA",
+    "mode": "absolute,y",
+    "operand": "$0658,Y"
+  },
+  {
+    "address": 58921,
+    "address_hex": "$e629",
+    "bytes": [153, 128, 6],
+    "mnemonic": "STA",
+    "mode": "absolute,y",
+    "operand": "$0680,Y"
+  },
+  {
+    "address": 58924,
+    "address_hex": "$e62c",
+    "bytes": [185, 48, 6],
+    "mnemonic": "LDA",
+    "mode": "absolute,y",
+    "operand": "$0630,Y"
+  },
+  {
+    "address": 58927,
+    "address_hex": "$e62f",
+    "bytes": [153, 88, 6],
+    "mnemonic": "STA",
+    "mode": "absolute,y",
+    "operand": "$0658,Y"
+  },
+  {
+    "address": 58930,
+    "address_hex": "$e632",
+    "bytes": [185, 8, 6],
+    "mnemonic": "LDA",
+    "mode": "absolute,y",
+    "operand": "$0608,Y"
+  },
+  {
+    "address": 58933,
+    "address_hex": "$e635",
+    "bytes": [153, 48, 6],
+    "mnemonic": "STA",
+    "mode": "absolute,y",
+    "operand": "$0630,Y"
+  },
+  {
+    "address": 58936,
+    "address_hex": "$e638",
+    "bytes": [185, 224, 5],
+    "mnemonic": "LDA",
+    "mode": "absolute,y",
+    "operand": "$05e0,Y"
+  },
+  {
+    "address": 58939,
+    "address_hex": "$e63b",
+    "bytes": [153, 8, 6],
+    "mnemonic": "STA",
+    "mode": "absolute,y",
+    "operand": "$0608,Y"
+  },
+  {
+    "address": 58942,
+    "address_hex": "$e63e",
+    "bytes": [185, 184, 5],
+    "mnemonic": "LDA",
+    "mode": "absolute,y",
+    "operand": "$05b8,Y"
+  },
+  {
+    "address": 58945,
+    "address_hex": "$e641",
+    "bytes": [153, 224, 5],
+    "mnemonic": "STA",
+    "mode": "absolute,y",
+    "operand": "$05e0,Y"
+  },
+  {
+    "address": 58948,
+    "address_hex": "$e644",
+    "bytes": [185, 144, 5],
+    "mnemonic": "LDA",
+    "mode": "absolute,y",
+    "operand": "$0590,Y"
+  },
+  {
+    "address": 58951,
+    "address_hex": "$e647",
+    "bytes": [153, 184, 5],
+    "mnemonic": "STA",
+    "mode": "absolute,y",
+    "operand": "$05b8,Y"
+  },
+  {
+    "address": 58954,
+    "address_hex": "$e64a",
+    "bytes": [185, 104, 5],
+    "mnemonic": "LDA",
+    "mode": "absolute,y",
+    "operand": "$0568,Y"
+  },
+  {
+    "address": 58957,
+    "address_hex": "$e64d",
+    "bytes": [153, 144, 5],
+    "mnemonic": "STA",
+    "mode": "absolute,y",
+    "operand": "$0590,Y"
+  },
+  {
+    "address": 58960,
+    "address_hex": "$e650",
+    "bytes": [185, 64, 5],
+    "mnemonic": "LDA",
+    "mode": "absolute,y",
+    "operand": "$0540,Y"
+  },
+  {
+    "address": 58963,
+    "address_hex": "$e653",
+    "bytes": [153, 104, 5],
+    "mnemonic": "STA",
+    "mode": "absolute,y",
+    "operand": "$0568,Y"
+  },
+  {
+    "address": 58966,
+    "address_hex": "$e656",
+    "bytes": [185, 24, 5],
+    "mnemonic": "LDA",
+    "mode": "absolute,y",
+    "operand": "$0518,Y"
+  },
+  {
+    "address": 58969,
+    "address_hex": "$e659",
+    "bytes": [153, 64, 5],
+    "mnemonic": "STA",
+    "mode": "absolute,y",
+    "operand": "$0540,Y"
+  },
+  {
+    "address": 58972,
+    "address_hex": "$e65c",
+    "bytes": [185, 240, 4],
+    "mnemonic": "LDA",
+    "mode": "absolute,y",
+    "operand": "$04f0,Y"
+  },
+  {
+    "address": 58975,
+    "address_hex": "$e65f",
+    "bytes": [153, 24, 5],
+    "mnemonic": "STA",
+    "mode": "absolute,y",
+    "operand": "$0518,Y"
+  },
+  {
+    "address": 58978,
+    "address_hex": "$e662",
+    "bytes": [185, 200, 4],
+    "mnemonic": "LDA",
+    "mode": "absolute,y",
+    "operand": "$04c8,Y"
+  },
+  {
+    "address": 58981,
+    "address_hex": "$e665",
+    "bytes": [153, 240, 4],
+    "mnemonic": "STA",
+    "mode": "absolute,y",
+    "operand": "$04f0,Y"
+  },
+  {
+    "address": 58984,
+    "address_hex": "$e668",
+    "bytes": [185, 160, 4],
+    "mnemonic": "LDA",
+    "mode": "absolute,y",
+    "operand": "$04a0,Y"
+  },
+  {
+    "address": 58987,
+    "address_hex": "$e66b",
+    "bytes": [153, 200, 4],
+    "mnemonic": "STA",
+    "mode": "absolute,y",
+    "operand": "$04c8,Y"
+  },
+  {
+    "address": 58990,
+    "address_hex": "$e66e",
+    "bytes": [185, 120, 4],
+    "mnemonic": "LDA",
+    "mode": "absolute,y",
+    "operand": "$0478,Y"
+  },
+  {
+    "address": 58993,
+    "address_hex": "$e671",
+    "bytes": [153, 160, 4],
+    "mnemonic": "STA",
+    "mode": "absolute,y",
+    "operand": "$04a0,Y"
+  },
+  {
+    "address": 58996,
+    "address_hex": "$e674",
+    "bytes": [185, 80, 4],
+    "mnemonic": "LDA",
+    "mode": "absolute,y",
+    "operand": "$0450,Y"
+  },
+  {
+    "address": 58999,
+    "address_hex": "$e677",
+    "bytes": [153, 120, 4],
+    "mnemonic": "STA",
+    "mode": "absolute,y",
+    "operand": "$0478,Y"
+  },
+  {
+    "address": 59002,
+    "address_hex": "$e67a",
+    "bytes": [185, 40, 4],
+    "mnemonic": "LDA",
+    "mode": "absolute,y",
+    "operand": "$0428,Y"
+  },
+  {
+    "address": 59005,
+    "address_hex": "$e67d",
+    "bytes": [153, 80, 4],
+    "mnemonic": "STA",
+    "mode": "absolute,y",
+    "operand": "$0450,Y"
+  },
+  {
+    "address": 59008,
+    "address_hex": "$e680",
+    "bytes": [185, 0, 4],
+    "mnemonic": "LDA",
+    "mode": "absolute,y",
+    "operand": "$0400,Y"
+  },
+  {
+    "address": 59011,
+    "address_hex": "$e683",
+    "bytes": [153, 40, 4],
+    "mnemonic": "STA",
+    "mode": "absolute,y",
+    "operand": "$0428,Y"
+  },
+  {
+    "address": 59014,
+    "address_hex": "$e686",
+    "bytes": [185, 152, 219],
+    "mnemonic": "LDA",
+    "mode": "absolute,y",
+    "operand": "$db98,Y"
+  },
+  {
+    "address": 59017,
+    "address_hex": "$e689",
+    "bytes": [153, 192, 219],
+    "mnemonic": "STA",
+    "mode": "absolute,y",
+    "operand": "$dbc0,Y"
+  },
+  {
+    "address": 59020,
+    "address_hex": "$e68c",
+    "bytes": [185, 112, 219],
+    "mnemonic": "LDA",
+    "mode": "absolute,y",
+    "operand": "$db70,Y"
+  },
+  {
+    "address": 59023,
+    "address_hex": "$e68f",
+    "bytes": [153, 152, 219],
+    "mnemonic": "STA",
+    "mode": "absolute,y",
+    "operand": "$db98,Y"
+  },
+  {
+    "address": 59026,
+    "address_hex": "$e692",
+    "bytes": [185, 72, 219],
+    "mnemonic": "LDA",
+    "mode": "absolute,y",
+    "operand": "$db48,Y"
+  },
+  {
+    "address": 59029,
+    "address_hex": "$e695",
+    "bytes": [153, 112, 219],
+    "mnemonic": "STA",
+    "mode": "absolute,y",
+    "operand": "$db70,Y"
+  },
+  {
+    "address": 59032,
+    "address_hex": "$e698",
+    "bytes": [185, 32, 219],
+    "mnemonic": "LDA",
+    "mode": "absolute,y",
+    "operand": "$db20,Y"
+  },
+  {
+    "address": 59035,
+    "address_hex": "$e69b",
+    "bytes": [153, 72, 219],
+    "mnemonic": "STA",
+    "mode": "absolute,y",
+    "operand": "$db48,Y"
+  },
+  {
+    "address": 59038,
+    "address_hex": "$e69e",
+    "bytes": [185, 248, 218],
+    "mnemonic": "LDA",
+    "mode": "absolute,y",
+    "operand": "$daf8,Y"
+  },
+  {
+    "address": 59041,
+    "address_hex": "$e6a1",
+    "bytes": [153, 32, 219],
+    "mnemonic": "STA",
+    "mode": "absolute,y",
+    "operand": "$db20,Y"
+  },
+  {
+    "address": 59044,
+    "address_hex": "$e6a4",
+    "bytes": [185, 208, 218],
+    "mnemonic": "LDA",
+    "mode": "absolute,y",
+    "operand": "$dad0,Y"
+  },
+  {
+    "address": 59047,
+    "address_hex": "$e6a7",
+    "bytes": [153, 248, 218],
+    "mnemonic": "STA",
+    "mode": "absolute,y",
+    "operand": "$daf8,Y"
+  },
+  {
+    "address": 59050,
+    "address_hex": "$e6aa",
+    "bytes": [185, 168, 218],
+    "mnemonic": "LDA",
+    "mode": "absolute,y",
+    "operand": "$daa8,Y"
+  },
+  {
+    "address": 59053,
+    "address_hex": "$e6ad",
+    "bytes": [153, 208, 218],
+    "mnemonic": "STA",
+    "mode": "absolute,y",
+    "operand": "$dad0,Y"
+  },
+  {
+    "address": 59056,
+    "address_hex": "$e6b0",
+    "bytes": [185, 128, 218],
+    "mnemonic": "LDA",
+    "mode": "absolute,y",
+    "operand": "$da80,Y"
+  },
+  {
+    "address": 59059,
+    "address_hex": "$e6b3",
+    "bytes": [153, 168, 218],
+    "mnemonic": "STA",
+    "mode": "absolute,y",
+    "operand": "$daa8,Y"
+  },
+  {
+    "address": 59062,
+    "address_hex": "$e6b6",
+    "bytes": [185, 88, 218],
+    "mnemonic": "LDA",
+    "mode": "absolute,y",
+    "operand": "$da58,Y"
+  },
+  {
+    "address": 59065,
+    "address_hex": "$e6b9",
+    "bytes": [153, 128, 218],
+    "mnemonic": "STA",
+    "mode": "absolute,y",
+    "operand": "$da80,Y"
+  },
+  {
+    "address": 59068,
+    "address_hex": "$e6bc",
+    "bytes": [185, 48, 218],
+    "mnemonic": "LDA",
+    "mode": "absolute,y",
+    "operand": "$da30,Y"
+  },
+  {
+    "address": 59071,
+    "address_hex": "$e6bf",
+    "bytes": [153, 88, 218],
+    "mnemonic": "STA",
+    "mode": "absolute,y",
+    "operand": "$da58,Y"
+  },
+  {
+    "address": 59074,
+    "address_hex": "$e6c2",
+    "bytes": [185, 8, 218],
+    "mnemonic": "LDA",
+    "mode": "absolute,y",
+    "operand": "$da08,Y"
+  },
+  {
+    "address": 59077,
+    "address_hex": "$e6c5",
+    "bytes": [153, 48, 218],
+    "mnemonic": "STA",
+    "mode": "absolute,y",
+    "operand": "$da30,Y"
+  },
+  {
+    "address": 59080,
+    "address_hex": "$e6c8",
+    "bytes": [185, 224, 217],
+    "mnemonic": "LDA",
+    "mode": "absolute,y",
+    "operand": "$d9e0,Y"
+  },
+  {
+    "address": 59083,
+    "address_hex": "$e6cb",
+    "bytes": [153, 8, 218],
+    "mnemonic": "STA",
+    "mode": "absolute,y",
+    "operand": "$da08,Y"
+  },
+  {
+    "address": 59086,
+    "address_hex": "$e6ce",
+    "bytes": [185, 184, 217],
+    "mnemonic": "LDA",
+    "mode": "absolute,y",
+    "operand": "$d9b8,Y"
+  },
+  {
+    "address": 59089,
+    "address_hex": "$e6d1",
+    "bytes": [153, 224, 217],
+    "mnemonic": "STA",
+    "mode": "absolute,y",
+    "operand": "$d9e0,Y"
+  },
+  {
+    "address": 59092,
+    "address_hex": "$e6d4",
+    "bytes": [185, 144, 217],
+    "mnemonic": "LDA",
+    "mode": "absolute,y",
+    "operand": "$d990,Y"
+  },
+  {
+    "address": 59095,
+    "address_hex": "$e6d7",
+    "bytes": [153, 184, 217],
+    "mnemonic": "STA",
+    "mode": "absolute,y",
+    "operand": "$d9b8,Y"
+  },
+  {
+    "address": 59098,
+    "address_hex": "$e6da",
+    "bytes": [185, 104, 217],
+    "mnemonic": "LDA",
+    "mode": "absolute,y",
+    "operand": "$d968,Y"
+  },
+  {
+    "address": 59101,
+    "address_hex": "$e6dd",
+    "bytes": [153, 144, 217],
+    "mnemonic": "STA",
+    "mode": "absolute,y",
+    "operand": "$d990,Y"
+  },
+  {
+    "address": 59104,
+    "address_hex": "$e6e0",
+    "bytes": [185, 64, 217],
+    "mnemonic": "LDA",
+    "mode": "absolute,y",
+    "operand": "$d940,Y"
+  },
+  {
+    "address": 59107,
+    "address_hex": "$e6e3",
+    "bytes": [153, 104, 217],
+    "mnemonic": "STA",
+    "mode": "absolute,y",
+    "operand": "$d968,Y"
+  },
+  {
+    "address": 59110,
+    "address_hex": "$e6e6",
+    "bytes": [185, 24, 217],
+    "mnemonic": "LDA",
+    "mode": "absolute,y",
+    "operand": "$d918,Y"
+  },
+  {
+    "address": 59113,
+    "address_hex": "$e6e9",
+    "bytes": [153, 64, 217],
+    "mnemonic": "STA",
+    "mode": "absolute,y",
+    "operand": "$d940,Y"
+  },
+  {
+    "address": 59116,
+    "address_hex": "$e6ec",
+    "bytes": [185, 240, 216],
+    "mnemonic": "LDA",
+    "mode": "absolute,y",
+    "operand": "$d8f0,Y"
+  },
+  {
+    "address": 59119,
+    "address_hex": "$e6ef",
+    "bytes": [153, 24, 217],
+    "mnemonic": "STA",
+    "mode": "absolute,y",
+    "operand": "$d918,Y"
+  },
+  {
+    "address": 59122,
+    "address_hex": "$e6f2",
+    "bytes": [185, 200, 216],
+    "mnemonic": "LDA",
+    "mode": "absolute,y",
+    "operand": "$d8c8,Y"
+  },
+  {
+    "address": 59125,
+    "address_hex": "$e6f5",
+    "bytes": [153, 240, 216],
+    "mnemonic": "STA",
+    "mode": "absolute,y",
+    "operand": "$d8f0,Y"
+  },
+  {
+    "address": 59128,
+    "address_hex": "$e6f8",
+    "bytes": [185, 160, 216],
+    "mnemonic": "LDA",
+    "mode": "absolute,y",
+    "operand": "$d8a0,Y"
+  },
+  {
+    "address": 59131,
+    "address_hex": "$e6fb",
+    "bytes": [153, 200, 216],
+    "mnemonic": "STA",
+    "mode": "absolute,y",
+    "operand": "$d8c8,Y"
+  },
+  {
+    "address": 59134,
+    "address_hex": "$e6fe",
+    "bytes": [185, 120, 216],
+    "mnemonic": "LDA",
+    "mode": "absolute,y",
+    "operand": "$d878,Y"
+  },
+  {
+    "address": 59137,
+    "address_hex": "$e701",
+    "bytes": [153, 160, 216],
+    "mnemonic": "STA",
+    "mode": "absolute,y",
+    "operand": "$d8a0,Y"
+  },
+  {
+    "address": 59140,
+    "address_hex": "$e704",
+    "bytes": [185, 80, 216],
+    "mnemonic": "LDA",
+    "mode": "absolute,y",
+    "operand": "$d850,Y"
+  },
+  {
+    "address": 59143,
+    "address_hex": "$e707",
+    "bytes": [153, 120, 216],
+    "mnemonic": "STA",
+    "mode": "absolute,y",
+    "operand": "$d878,Y"
+  },
+  {
+    "address": 59146,
+    "address_hex": "$e70a",
+    "bytes": [185, 40, 216],
+    "mnemonic": "LDA",
+    "mode": "absolute,y",
+    "operand": "$d828,Y"
+  },
+  {
+    "address": 59149,
+    "address_hex": "$e70d",
+    "bytes": [153, 80, 216],
+    "mnemonic": "STA",
+    "mode": "absolute,y",
+    "operand": "$d850,Y"
+  },
+  {
+    "address": 59152,
+    "address_hex": "$e710",
+    "bytes": [185, 0, 216],
+    "mnemonic": "LDA",
+    "mode": "absolute,y",
+    "operand": "$d800,Y"
+  },
+  {
+    "address": 59155,
+    "address_hex": "$e713",
+    "bytes": [153, 40, 216],
+    "mnemonic": "STA",
+    "mode": "absolute,y",
+    "operand": "$d828,Y"
+  },
+  {
+    "address": 59158,
+    "address_hex": "$e716",
+    "bytes": [136],
+    "mnemonic": "DEY",
+    "mode": "implied",
+    "operand": ""
+  },
+  {
+    "address": 59159,
+    "address_hex": "$e717",
+    "bytes": [48, 3],
+    "mnemonic": "BMI",
+    "mode": "relative",
+    "operand": "$e71c"
+  },
+  {
+    "address": 59161,
+    "address_hex": "$e719",
+    "bytes": [76, 246, 229],
+    "mnemonic": "JMP",
+    "mode": "absolute",
+    "operand": "$e5f6"
+  }
+]

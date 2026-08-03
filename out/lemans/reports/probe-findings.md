@@ -1,0 +1,81 @@
+# Probe Findings
+
+Memory ranges that changed between controlled-input probe runs — candidates for input-sensitive game state.
+
+- Findings: 73
+
+| Range | Role | Confidence | Changed in |
+| --- | --- | ---: | --- |
+| $0002-$0002 | input-sensitive | 40% | fire |
+| $0014-$0014 | input-sensitive | 40% | fire |
+| $0016-$0019 | input-sensitive | 40% | fire |
+| $0020-$0020 | input-sensitive | 40% | fire |
+| $0022-$0023 | input-sensitive | 40% | fire |
+| $0025-$0025 | input-sensitive | 40% | fire |
+| $002a-$002a | input-sensitive | 40% | fire |
+| $0030-$0032 | input-sensitive | 40% | fire |
+| $0034-$0034 | input-sensitive | 40% | fire |
+| $0036-$0036 | input-sensitive | 40% | fire |
+| $0041-$0042 | input-sensitive | 40% | fire |
+| $004e-$0051 | input-sensitive | 40% | fire |
+| $0053-$0054 | input-sensitive | 40% | fire |
+| $005a-$005a | input-sensitive | 40% | fire |
+| $0064-$0065 | input-sensitive | 40% | fire |
+| $006b-$006b | input-sensitive | 40% | fire |
+| $0071-$0071 | input-sensitive | 40% | fire |
+| $0077-$0077 | input-sensitive | 40% | fire |
+| $008e-$0091 | input-sensitive | 40% | fire |
+| $0400-$0400 | input-sensitive | 40% | fire |
+| $041b-$041b | input-sensitive | 40% | fire |
+| $0428-$0428 | input-sensitive | 40% | fire |
+| $0443-$0443 | input-sensitive | 40% | fire |
+| $0450-$0450 | input-sensitive | 40% | fire |
+| $0493-$0493 | input-sensitive | 40% | fire |
+| $04c8-$04c8 | input-sensitive | 40% | fire |
+| $04d0-$04df | input-sensitive | 40% | fire |
+| $04e3-$04e3 | input-sensitive | 40% | fire |
+| $04eb-$04eb | input-sensitive | 40% | fire |
+| $04f0-$04f0 | input-sensitive | 40% | fire |
+| $04f8-$0507 | input-sensitive | 40% | fire |
+| $0520-$052f | input-sensitive | 40% | fire |
+| $0533-$0533 | input-sensitive | 40% | fire |
+| $0548-$0557 | input-sensitive | 40% | fire |
+| $0568-$0568 | input-sensitive | 40% | fire |
+| $0570-$057f | input-sensitive | 40% | fire |
+| $0583-$0583 | input-sensitive | 40% | fire |
+| $0590-$0590 | input-sensitive | 40% | fire |
+| $0598-$05a7 | input-sensitive | 40% | fire |
+| $05c6-$05c8 | input-sensitive | 40% | fire |
+| $05d3-$05d3 | input-sensitive | 40% | fire |
+| $05e8-$05ea | input-sensitive | 40% | fire |
+| $05ec-$05ef | input-sensitive | 40% | fire |
+| $05f1-$05f2 | input-sensitive | 40% | fire |
+| $0608-$0608 | input-sensitive | 40% | fire |
+| $0611-$0613 | input-sensitive | 40% | fire |
+| $0615-$061e | input-sensitive | 40% | fire |
+| $0623-$0623 | input-sensitive | 40% | fire |
+| $0630-$0630 | input-sensitive | 40% | fire |
+| $063b-$0643 | input-sensitive | 40% | fire |
+| $0660-$066a | input-sensitive | 40% | fire |
+| $066c-$066f | input-sensitive | 40% | fire |
+| $0673-$0673 | input-sensitive | 40% | fire |
+| $06a8-$06a8 | input-sensitive | 40% | fire |
+| $06b2-$06ba | input-sensitive | 40% | fire |
+| $06bc-$06bd | input-sensitive | 40% | fire |
+| $06c3-$06c3 | input-sensitive | 40% | fire |
+| $06d0-$06d0 | input-sensitive | 40% | fire |
+| $06d8-$06dd | input-sensitive | 40% | fire |
+| $06df-$06e0 | input-sensitive | 40% | fire |
+| $06e2-$06e7 | input-sensitive | 40% | fire |
+| $0701-$070a | input-sensitive | 40% | fire |
+| $070c-$070e | input-sensitive | 40% | fire |
+| $0713-$0713 | input-sensitive | 40% | fire |
+| $0750-$075f | input-sensitive | 40% | fire |
+| $0770-$0770 | input-sensitive | 40% | fire |
+| $0778-$0787 | input-sensitive | 40% | fire |
+| $07a0-$07af | input-sensitive | 40% | fire |
+| $07b3-$07b3 | input-sensitive | 40% | fire |
+| $07c0-$07c0 | input-sensitive | 40% | fire |
+| $07c8-$07d7 | input-sensitive | 40% | fire |
+| $07db-$07db | input-sensitive | 40% | fire |
+| $07f8-$07f8 | input-sensitive | 40% | fire |

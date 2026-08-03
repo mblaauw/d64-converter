@@ -313,22 +313,30 @@ fn capture_with_running_vice(
         if frame.is_multiple_of(500) {
             println!("loading... frame {frame} (t0 not yet detected)");
         }
-        // t0 heuristic: the CPU has left ROM (running game code in RAM) and
-        // the machine is in a stable state across several frames. The screen
-        // base check alone is unreliable: some games keep the video matrix
-        // at $0400 while switching charsets. (The IRQ vector is not checked
-        // either: many games keep the KERNAL IRQ handler.)
+        // t0 heuristic: the game has taken over the VIC, stable across
+        // several frames. Signal: the charset base is no longer the KERNAL
+        // default ($1000, d018 bits 1-3 = 2) or the boot state ($0000, = 0),
+        // OR the screen base left the KERNAL default ($0400). This accepts
+        // custom-charset games (Le Mans d018=$1F), bitmap modes, and games
+        // that keep the video matrix at $0400, while rejecting boot and the
+        // KERNAL ready screen. The PC is deliberately not required to be in
+        // RAM: games idling in a KERNAL call (e.g. CHRIN waiting for a key)
+        // park in ROM while their video mode is already active.
         let d018 = monitor.read_memory(0xd018, 0xd018)?;
         let pc = monitor.registers()?.pc;
-        let in_game =
-            (0x0200..0xa000).contains(&pc) && d018.first().copied().unwrap_or_default() != 0x15;
+        let value = d018.first().copied().unwrap_or_default();
+        let charset_bits = (value >> 1) & 0x07;
+        let screen_bits = (value >> 4) & 0x0f;
+        // Boot and KERNAL states: charset $0000/$1000, screen $0000/$0400.
+        let custom_charset = !matches!(charset_bits, 0 | 2);
+        let moved_screen = !matches!(screen_bits, 0 | 1);
+        let in_game = custom_charset || moved_screen;
         if in_game {
             game_screen_frames += 1;
             if game_screen_frames >= 30 {
                 game_start_frame = Some(frame);
                 println!(
-                    "game start (t0) detected at frame {frame}: pc=${pc:04x} d018=${:02x}",
-                    d018.first().copied().unwrap_or_default()
+                    "game start (t0) detected at frame {frame}: pc=${pc:04x} d018=${value:02x}"
                 );
             }
         } else {

@@ -1,0 +1,659 @@
+[
+  {
+    "start": 2,
+    "end": 2,
+    "start_hex": "$0002",
+    "end_hex": "$0002",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 20,
+    "end": 20,
+    "start_hex": "$0014",
+    "end_hex": "$0014",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 22,
+    "end": 25,
+    "start_hex": "$0016",
+    "end_hex": "$0019",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 32,
+    "end": 32,
+    "start_hex": "$0020",
+    "end_hex": "$0020",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 34,
+    "end": 35,
+    "start_hex": "$0022",
+    "end_hex": "$0023",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 37,
+    "end": 37,
+    "start_hex": "$0025",
+    "end_hex": "$0025",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 42,
+    "end": 42,
+    "start_hex": "$002a",
+    "end_hex": "$002a",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 48,
+    "end": 50,
+    "start_hex": "$0030",
+    "end_hex": "$0032",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 52,
+    "end": 52,
+    "start_hex": "$0034",
+    "end_hex": "$0034",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 54,
+    "end": 54,
+    "start_hex": "$0036",
+    "end_hex": "$0036",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 65,
+    "end": 66,
+    "start_hex": "$0041",
+    "end_hex": "$0042",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 78,
+    "end": 81,
+    "start_hex": "$004e",
+    "end_hex": "$0051",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 83,
+    "end": 84,
+    "start_hex": "$0053",
+    "end_hex": "$0054",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 90,
+    "end": 90,
+    "start_hex": "$005a",
+    "end_hex": "$005a",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 100,
+    "end": 101,
+    "start_hex": "$0064",
+    "end_hex": "$0065",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 107,
+    "end": 107,
+    "start_hex": "$006b",
+    "end_hex": "$006b",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 113,
+    "end": 113,
+    "start_hex": "$0071",
+    "end_hex": "$0071",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 119,
+    "end": 119,
+    "start_hex": "$0077",
+    "end_hex": "$0077",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 142,
+    "end": 145,
+    "start_hex": "$008e",
+    "end_hex": "$0091",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 1024,
+    "end": 1024,
+    "start_hex": "$0400",
+    "end_hex": "$0400",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 1051,
+    "end": 1051,
+    "start_hex": "$041b",
+    "end_hex": "$041b",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 1064,
+    "end": 1064,
+    "start_hex": "$0428",
+    "end_hex": "$0428",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 1091,
+    "end": 1091,
+    "start_hex": "$0443",
+    "end_hex": "$0443",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 1104,
+    "end": 1104,
+    "start_hex": "$0450",
+    "end_hex": "$0450",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 1171,
+    "end": 1171,
+    "start_hex": "$0493",
+    "end_hex": "$0493",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 1224,
+    "end": 1224,
+    "start_hex": "$04c8",
+    "end_hex": "$04c8",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 1232,
+    "end": 1247,
+    "start_hex": "$04d0",
+    "end_hex": "$04df",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 1251,
+    "end": 1251,
+    "start_hex": "$04e3",
+    "end_hex": "$04e3",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 1259,
+    "end": 1259,
+    "start_hex": "$04eb",
+    "end_hex": "$04eb",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 1264,
+    "end": 1264,
+    "start_hex": "$04f0",
+    "end_hex": "$04f0",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 1272,
+    "end": 1287,
+    "start_hex": "$04f8",
+    "end_hex": "$0507",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 1312,
+    "end": 1327,
+    "start_hex": "$0520",
+    "end_hex": "$052f",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 1331,
+    "end": 1331,
+    "start_hex": "$0533",
+    "end_hex": "$0533",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 1352,
+    "end": 1367,
+    "start_hex": "$0548",
+    "end_hex": "$0557",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 1384,
+    "end": 1384,
+    "start_hex": "$0568",
+    "end_hex": "$0568",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 1392,
+    "end": 1407,
+    "start_hex": "$0570",
+    "end_hex": "$057f",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 1411,
+    "end": 1411,
+    "start_hex": "$0583",
+    "end_hex": "$0583",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 1424,
+    "end": 1424,
+    "start_hex": "$0590",
+    "end_hex": "$0590",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 1432,
+    "end": 1447,
+    "start_hex": "$0598",
+    "end_hex": "$05a7",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 1478,
+    "end": 1480,
+    "start_hex": "$05c6",
+    "end_hex": "$05c8",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 1491,
+    "end": 1491,
+    "start_hex": "$05d3",
+    "end_hex": "$05d3",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 1512,
+    "end": 1514,
+    "start_hex": "$05e8",
+    "end_hex": "$05ea",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 1516,
+    "end": 1519,
+    "start_hex": "$05ec",
+    "end_hex": "$05ef",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 1521,
+    "end": 1522,
+    "start_hex": "$05f1",
+    "end_hex": "$05f2",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 1544,
+    "end": 1544,
+    "start_hex": "$0608",
+    "end_hex": "$0608",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 1553,
+    "end": 1555,
+    "start_hex": "$0611",
+    "end_hex": "$0613",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 1557,
+    "end": 1566,
+    "start_hex": "$0615",
+    "end_hex": "$061e",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 1571,
+    "end": 1571,
+    "start_hex": "$0623",
+    "end_hex": "$0623",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 1584,
+    "end": 1584,
+    "start_hex": "$0630",
+    "end_hex": "$0630",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 1595,
+    "end": 1603,
+    "start_hex": "$063b",
+    "end_hex": "$0643",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 1632,
+    "end": 1642,
+    "start_hex": "$0660",
+    "end_hex": "$066a",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 1644,
+    "end": 1647,
+    "start_hex": "$066c",
+    "end_hex": "$066f",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 1651,
+    "end": 1651,
+    "start_hex": "$0673",
+    "end_hex": "$0673",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 1704,
+    "end": 1704,
+    "start_hex": "$06a8",
+    "end_hex": "$06a8",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 1714,
+    "end": 1722,
+    "start_hex": "$06b2",
+    "end_hex": "$06ba",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 1724,
+    "end": 1725,
+    "start_hex": "$06bc",
+    "end_hex": "$06bd",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 1731,
+    "end": 1731,
+    "start_hex": "$06c3",
+    "end_hex": "$06c3",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 1744,
+    "end": 1744,
+    "start_hex": "$06d0",
+    "end_hex": "$06d0",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 1752,
+    "end": 1757,
+    "start_hex": "$06d8",
+    "end_hex": "$06dd",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 1759,
+    "end": 1760,
+    "start_hex": "$06df",
+    "end_hex": "$06e0",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 1762,
+    "end": 1767,
+    "start_hex": "$06e2",
+    "end_hex": "$06e7",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 1793,
+    "end": 1802,
+    "start_hex": "$0701",
+    "end_hex": "$070a",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 1804,
+    "end": 1806,
+    "start_hex": "$070c",
+    "end_hex": "$070e",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 1811,
+    "end": 1811,
+    "start_hex": "$0713",
+    "end_hex": "$0713",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 1872,
+    "end": 1887,
+    "start_hex": "$0750",
+    "end_hex": "$075f",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 1904,
+    "end": 1904,
+    "start_hex": "$0770",
+    "end_hex": "$0770",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 1912,
+    "end": 1927,
+    "start_hex": "$0778",
+    "end_hex": "$0787",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 1952,
+    "end": 1967,
+    "start_hex": "$07a0",
+    "end_hex": "$07af",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 1971,
+    "end": 1971,
+    "start_hex": "$07b3",
+    "end_hex": "$07b3",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 1984,
+    "end": 1984,
+    "start_hex": "$07c0",
+    "end_hex": "$07c0",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 1992,
+    "end": 2007,
+    "start_hex": "$07c8",
+    "end_hex": "$07d7",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 2011,
+    "end": 2011,
+    "start_hex": "$07db",
+    "end_hex": "$07db",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  },
+  {
+    "start": 2040,
+    "end": 2040,
+    "start_hex": "$07f8",
+    "end_hex": "$07f8",
+    "role": "input-sensitive",
+    "confidence": 40,
+    "changed_in": ["fire"]
+  }
+]

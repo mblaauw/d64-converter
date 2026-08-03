@@ -1,0 +1,40 @@
+{
+  "source_path": "/Users/mich/Downloads/Le Mans.d64",
+  "analysis_version": 1,
+  "emulator": {
+    "status": "captured",
+    "engine": "VICE x64sc binary monitor",
+    "address": "127.0.0.1:6502",
+    "seconds": 15,
+    "registers": {
+      "pc": 58463,
+      "a": 0,
+      "x": 255,
+      "y": 1,
+      "sp": 248,
+      "status": 35
+    },
+    "reset_vector": 57399,
+    "ram_snapshot_path": "snapshots/vice-capture.ram",
+    "ram_bytes": 65536,
+    "hardware_samples_path": "traces/hardware-samples.json",
+    "hardware_sample_count": 75,
+    "input_events_path": "traces/input-events.json",
+    "input_event_count": 27,
+    "game_start_frame": 1327,
+    "sid_writes_path": null,
+    "sid_write_count": 0
+  },
+  "extracted_files": [
+    {
+      "name": "LE MANS",
+      "file_type": "PRG",
+      "path": "disk/files/le_mans.prg",
+      "bytes": 8324,
+      "load_address": 2049,
+      "end_address_exclusive": 10371,
+      "checksum16": 31471,
+      "basic_sys": 2064
+    }
+  ]
+}

@@ -8,11 +8,11 @@
     "seconds": 8,
     "registers": {
       "pc": 2,
-      "a": 20,
+      "a": 167,
       "x": 169,
       "y": 255,
-      "sp": 163,
-      "status": 117
+      "sp": 123,
+      "status": 181
     },
     "reset_vector": 0,
     "ram_snapshot_path": "snapshots/vice-capture.ram",
@@ -21,7 +21,7 @@
     "hardware_sample_count": 40,
     "input_events_path": "traces/input-events.json",
     "input_event_count": 14,
-    "game_start_frame": 4295,
+    "game_start_frame": 4294,
     "sid_writes_path": null,
     "sid_write_count": 0
   },

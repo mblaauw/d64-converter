@@ -25,7 +25,7 @@
 - Captured live VICE RAM after 8 seconds into `snapshots/vice-capture.ram`.
 - Collected 40 hardware samples into `traces/hardware-samples.json`.
 - Extracted 1 screen blocks, 1 charsets, and 4 displayed sprite blocks into `assets/`.
-- Game start (t0) detected at frame 4295: IRQ vector left the KERNAL default and the screen base left $0400. Earlier frames are the loader phase.
+- Game start (t0) detected at frame 4294: IRQ vector left the KERNAL default and the screen base left $0400. Earlier frames are the loader phase.
 - Applied 14 joystick input events from the default autoplay script.
 
 ## Open Questions
