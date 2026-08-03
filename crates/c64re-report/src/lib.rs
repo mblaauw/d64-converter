@@ -832,3 +832,62 @@ fn executed_ranges(provenance: &ProvenanceMap) -> Vec<(u16, u16)> {
     }
     ranges
 }
+
+// ---------------------------------------------------------------------------
+// Disassembly
+// ---------------------------------------------------------------------------
+
+use c64re_disasm::DisasmLine;
+
+pub fn disassembly_markdown(lines: &[DisasmLine], title: &str) -> String {
+    let mut out = String::new();
+    out.push_str(&format!("# {title}\n\n"));
+    out.push_str("Coverage-seeded linear disassembly of executed code.\n\n");
+    out.push_str(&format!("- Instructions: {}\n\n", lines.len()));
+    out.push_str("```\n");
+    for line in lines.iter().take(400) {
+        out.push_str(&line.render());
+        out.push('\n');
+    }
+    if lines.len() > 400 {
+        out.push_str(&format!(
+            "; ... {} more instructions omitted\n",
+            lines.len() - 400
+        ));
+    }
+    out.push_str("```\n");
+    out
+}
+
+pub fn disassembly_json(lines: &[DisasmLine]) -> String {
+    let mut out = String::new();
+    out.push_str("[\n");
+    for (index, line) in lines.iter().enumerate() {
+        if index > 0 {
+            out.push_str(",\n");
+        }
+        out.push_str("  {\n");
+        out.push_str(&format!("    \"address\": {},\n", line.address));
+        out.push_str(&format!(
+            "    \"address_hex\": \"{}\",\n",
+            hex16(line.address)
+        ));
+        out.push_str(&format!(
+            "    \"bytes\": [{}],\n",
+            line.bytes
+                .iter()
+                .map(u8::to_string)
+                .collect::<Vec<_>>()
+                .join(", ")
+        ));
+        out.push_str(&format!("    \"mnemonic\": \"{}\",\n", line.mnemonic));
+        out.push_str(&format!("    \"mode\": \"{}\",\n", line.mode.as_str()));
+        out.push_str(&format!(
+            "    \"operand\": \"{}\"\n",
+            json_escape(&line.operand_text)
+        ));
+        out.push_str("  }");
+    }
+    out.push_str("\n]\n");
+    out
+}

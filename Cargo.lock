@@ -91,6 +91,7 @@ dependencies = [
  "c64re-assets",
  "c64re-capture",
  "c64re-d64",
+ "c64re-disasm",
  "c64re-probes",
  "c64re-provenance",
  "c64re-report",
@@ -134,6 +135,7 @@ version = "0.1.0"
 dependencies = [
  "c64re-capture",
  "c64re-d64",
+ "c64re-disasm",
  "c64re-probes",
  "c64re-provenance",
  "c64re-trace",

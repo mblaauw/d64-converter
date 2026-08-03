@@ -67,6 +67,9 @@ struct AnalyzeArgs {
     /// Collect an approximate execution-coverage map from CpuHistory.
     #[arg(long)]
     provenance: bool,
+    /// Disassemble the executed code (coverage-seeded linear sweep).
+    #[arg(long)]
+    disasm: bool,
     /// Autostart via VICE command line (for fastloader games).
     #[arg(long)]
     cmdline_autostart: bool,
@@ -266,7 +269,7 @@ fn analyze(args: &AnalyzeArgs) -> Result<(), Box<dyn std::error::Error>> {
                 capture.input_events.len()
             ));
         }
-        if args.probe || args.provenance {
+        if args.probe || args.provenance || args.disasm {
             let t0 = snapshots.join("t0.vsf");
             if t0.exists() {
                 if args.probe {
@@ -284,8 +287,9 @@ fn analyze(args: &AnalyzeArgs) -> Result<(), Box<dyn std::error::Error>> {
                         findings.len()
                     ));
                 }
-                if args.provenance {
+                if args.provenance || args.disasm {
                     let provenance = run_provenance(&args.vice_addr, &t0)?;
+                    let counts = provenance.counts();
                     fs::write(
                         traces.join("provenance.json"),
                         c64re_report::provenance_json(&provenance),
@@ -294,17 +298,29 @@ fn analyze(args: &AnalyzeArgs) -> Result<(), Box<dyn std::error::Error>> {
                         reports.join("provenance.md"),
                         c64re_report::provenance_markdown(&provenance),
                     )?;
-                    let counts = provenance.counts();
                     session.notes.push(format!(
-                        "Execution coverage: {} executed bytes across {} distinct ranges.",
-                        counts.executed,
-                        c64re_report::provenance_markdown(&provenance)
-                            .lines()
-                            .count()
+                        "Execution coverage: {} executed bytes.",
+                        counts.executed
                     ));
+                    if args.disasm {
+                        let ram = fs::read(snapshots.join("vice-capture.ram"))?;
+                        let lines = c64re_disasm::disassemble_executed(&ram, &provenance, 500);
+                        fs::write(
+                            traces.join("disassembly.json"),
+                            c64re_report::disassembly_json(&lines),
+                        )?;
+                        fs::write(
+                            reports.join("disassembly.md"),
+                            c64re_report::disassembly_markdown(&lines, "Executed Code"),
+                        )?;
+                        session.notes.push(format!(
+                            "Disassembled {} executed instructions into `reports/disassembly.md`.",
+                            lines.len()
+                        ));
+                    }
                 }
             } else {
-                eprintln!("warning: no savestate at {t0:?}; skipping probes/provenance");
+                eprintln!("warning: no savestate at {t0:?}; skipping probes/provenance/disasm");
             }
         }
         Some(capture)

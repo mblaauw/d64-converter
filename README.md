@@ -49,6 +49,8 @@ This is not a magic source converter. The intended workflow is:
 - `--provenance`: replays the savestate with the autoplay script and harvests
   executed PCs from `CpuHistory` into an approximate coverage map →
   `provenance.json/md` (executed ranges).
+- `--disasm`: coverage-seeded linear disassembly of executed code (real 6502
+  decoder) → `disassembly.json/md`.
 
 Caveat: the deterministic anchor is the savestate taken after the settle
 period. If a game crashes or idles in a tight loop by then (some titles do —
@@ -67,8 +69,9 @@ the pipeline yet — the reports do not claim otherwise:
 - `c64re-provenance`, `c64re-trace`: data models for byte-level provenance
   and frame traces (the VICE-backed approximation is the next step).
 - `c64re-probes`: probe experiment definitions (draft).
-- `c64re-disasm`: stub; `linear_stub_disassembly` is not a real 6502
-  decoder — the real one will be seeded by `CpuHistory` PCs.
+- `c64re-disasm`: real NMOS 6502 decoder (full opcode table, addressing
+  modes, operand formatting); `--disasm` does a coverage-seeded linear sweep
+  of executed code.
 - `c64re-hybrid`: trait draft for the eventual native-routine replacement.
 
 ## Usage

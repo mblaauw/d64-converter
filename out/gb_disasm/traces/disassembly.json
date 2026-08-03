@@ -1,0 +1,18 @@
+[
+  {
+    "address": 2,
+    "address_hex": "$0002",
+    "bytes": [0],
+    "mnemonic": "BRK",
+    "mode": "implied",
+    "operand": ""
+  },
+  {
+    "address": 65535,
+    "address_hex": "$ffff",
+    "bytes": [255, 25, 25],
+    "mnemonic": "ISB",
+    "mode": "absolute,x",
+    "operand": "$1919,X"
+  }
+]
