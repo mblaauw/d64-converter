@@ -8,6 +8,143 @@ const BAM_TRACK: u8 = 18;
 const BAM_SECTOR: u8 = 0;
 const SECTOR_SIZE: usize = 256;
 
+/// Builds synthetic .d64 images in memory for tests and fixtures.
+/// No copyrighted content: only the bytes you put in.
+pub struct D64Builder {
+    bytes: Vec<u8>,
+    directory_slots: Vec<(u8, u8, u8, String, u16)>, // type, t, s, name, blocks
+}
+
+impl Default for D64Builder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl D64Builder {
+    pub fn new() -> Self {
+        Self {
+            bytes: vec![0_u8; total_sectors(35).expect("known") * SECTOR_SIZE],
+            directory_slots: Vec::new(),
+        }
+    }
+
+    /// Write a file into the first free sectors and add a directory entry.
+    /// `file_type`: 0x82 = closed PRG, 0x81 = closed SEQ, 0x01 = open SEQ.
+    pub fn add_file(&mut self, name: &str, file_type: u8, data: &[u8]) -> Result<(), D64Error> {
+        // Find the first unused sector chain (files share the same start if
+        // we don't track allocation).
+        let mut track = 5_u8;
+        let mut sector = 0_u8;
+        while self.is_sector_used(track, sector) {
+            let next = self.next_free(track, sector)?;
+            track = next.0;
+            sector = next.1;
+        }
+        let first_ts = (track, sector);
+        let mut offset = 0;
+        let mut blocks = 0_u16;
+        while offset < data.len() {
+            let off = sector_offset(track, sector)?;
+            let chunk = &data[offset..(offset + 250).min(data.len())];
+            let is_last = offset + chunk.len() >= data.len();
+            self.bytes[off] = 1; // mark used
+            if is_last {
+                self.bytes[off] = 0;
+                self.bytes[off + 1] = (chunk.len() + 1) as u8;
+            } else {
+                let next = self.next_free(track, sector)?;
+                track = next.0;
+                sector = next.1;
+                self.bytes[off] = track;
+                self.bytes[off + 1] = sector;
+            }
+            self.bytes[off + 2..off + 2 + chunk.len()].copy_from_slice(chunk);
+            offset += chunk.len();
+            blocks += 1;
+        }
+        self.directory_slots
+            .push((file_type, first_ts.0, first_ts.1, name.to_string(), blocks));
+        Ok(())
+    }
+
+    fn is_sector_used(&self, track: u8, sector: u8) -> bool {
+        let off = sector_offset(track, sector).expect("valid");
+        self.bytes[off..off + SECTOR_SIZE].iter().any(|&b| b != 0)
+    }
+
+    fn next_free(&self, track: u8, sector: u8) -> Result<(u8, u8), D64Error> {
+        let mut t = track;
+        let mut s = sector;
+        loop {
+            let sectors = sectors_on_track(t).ok_or(D64Error::InvalidTrackSector {
+                track: t,
+                sector: s,
+            })?;
+            s += 1;
+            if s >= sectors {
+                t += 1;
+                s = 0;
+            }
+            if t > 35 {
+                return Err(D64Error::InvalidTrackSector {
+                    track: t,
+                    sector: s,
+                });
+            }
+            if !self.is_sector_used(t, s) {
+                return Ok((t, s));
+            }
+        }
+    }
+
+    /// Finalize: write the BAM and directory, return the image bytes.
+    pub fn build(mut self) -> Vec<u8> {
+        let bam_off = sector_offset(BAM_TRACK, BAM_SECTOR).expect("valid");
+        for t in 1..=35_u8 {
+            let sectors = sectors_on_track(t).expect("validated");
+            let base = bam_off + (t as usize - 1) * 4;
+            self.bytes[base] = t;
+            self.bytes[base + 1] = sectors;
+            self.bytes[base + 2] = 0xff;
+            self.bytes[base + 3] = 0xff;
+            let extra = sectors.saturating_sub(16);
+            if extra > 0 {
+                self.bytes[base + 4] = (0xff >> (8 - extra)) as u8;
+            }
+        }
+        self.bytes[bam_off + 0x90..bam_off + 0x90 + 16].fill(0xa0);
+        self.bytes[bam_off + 0x90..bam_off + 0x92].copy_from_slice(b"SY");
+        self.bytes[bam_off + 0xa2] = b'0';
+        self.bytes[bam_off + 0xa3] = b'0';
+        self.bytes[bam_off + 0xa5] = b'2';
+        self.bytes[bam_off + 0xa6] = b'A';
+
+        let dir_off = sector_offset(DIRECTORY_TRACK, DIRECTORY_SECTOR).expect("valid");
+        self.bytes[dir_off] = 0;
+        self.bytes[dir_off + 1] = 0xff;
+        for (slot_index, (file_type, t, s, name, blocks)) in self.directory_slots.iter().enumerate()
+        {
+            let slot = dir_off + 2 + slot_index * 32;
+            if slot + 30 > self.bytes.len() {
+                break;
+            }
+            self.bytes[slot] = *file_type;
+            self.bytes[slot + 1] = *t;
+            self.bytes[slot + 2] = *s;
+            let name_bytes = name.as_bytes();
+            let pad = name_bytes.len().min(16);
+            self.bytes[slot + 3..slot + 3 + pad].copy_from_slice(&name_bytes[..pad]);
+            for i in pad..16 {
+                self.bytes[slot + 3 + i] = 0xa0;
+            }
+            self.bytes[slot + 28] = (blocks & 0xff) as u8;
+            self.bytes[slot + 29] = (blocks >> 8) as u8;
+        }
+        self.bytes
+    }
+}
+
 #[derive(Debug)]
 pub enum D64Error {
     Io(std::io::Error),
@@ -284,5 +421,31 @@ mod tests {
     fn rejects_unknown_sizes() {
         assert!(D64Image::from_bytes(vec![0_u8; 100]).is_err());
         assert!(D64Image::from_bytes(vec![0_u8; 174_849]).is_err());
+    }
+
+    #[test]
+    fn builder_round_trips_prg_and_seq() {
+        let mut builder = D64Builder::new();
+        // Tiny PRG with a BASIC SYS stub.
+        let prg = {
+            let mut data = vec![0x01, 0x08]; // load address $0801
+            data.extend_from_slice(&[
+                0x0b, 0x08, 0xca, 0x07, 0x9e, 0x32, 0x30, 0x36, 0x31, 0x00, 0x00, 0x00,
+            ]);
+            data
+        };
+        builder.add_file("TESTPROG", 0x82, &prg).unwrap();
+        builder.add_file("NOTES", 0x81, b"hello world").unwrap();
+        let image = D64Image::from_bytes(builder.build()).unwrap();
+        assert_eq!(image.tracks(), 35);
+        let dir = image.directory().unwrap();
+        assert_eq!(dir.len(), 2);
+        assert_eq!(dir[0].name, "TESTPROG");
+        assert_eq!(dir[0].file_type, FileType::Prg);
+        assert_eq!(dir[1].name, "NOTES");
+        let loaded = image.read_file(&dir[0]).unwrap();
+        assert_eq!(loaded, prg);
+        let notes = image.read_file(&dir[1]).unwrap();
+        assert_eq!(notes, b"hello world");
     }
 }

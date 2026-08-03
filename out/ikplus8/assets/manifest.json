@@ -1,0 +1,450 @@
+{
+  "manifest_path": "assets/manifest.json",
+  "screens": [
+    {
+      "kind": "screen",
+      "address": 0,
+      "address_hex": "$0000",
+      "sample_index": 0,
+      "path": "assets/screens/screen-0000.bin",
+      "preview_path": "assets/screens/screen-0000.png",
+      "note": "rendered with charset $0000"
+    },
+    {
+      "kind": "screen",
+      "address": 1024,
+      "address_hex": "$0400",
+      "sample_index": 10,
+      "path": "assets/screens/screen-0400.bin",
+      "preview_path": "assets/screens/screen-0400.png",
+      "note": "rendered with charset $1000"
+    },
+    {
+      "kind": "screen",
+      "address": 15360,
+      "address_hex": "$3c00",
+      "sample_index": 633,
+      "path": "assets/screens/screen-3c00.bin",
+      "preview_path": "assets/screens/screen-3c00.png",
+      "note": "rendered with charset $3800"
+    },
+    {
+      "kind": "screen",
+      "address": 23552,
+      "address_hex": "$5c00",
+      "sample_index": 674,
+      "path": "assets/screens/screen-5c00.bin",
+      "preview_path": "assets/screens/screen-5c00.png",
+      "note": "rendered with charset $5000"
+    },
+    {
+      "kind": "screen",
+      "address": 9216,
+      "address_hex": "$2400",
+      "sample_index": 687,
+      "path": "assets/screens/screen-2400.bin",
+      "preview_path": "assets/screens/screen-2400.png",
+      "note": "rendered with charset $1000"
+    }
+  ],
+  "charsets": [
+    {
+      "kind": "charset",
+      "address": 0,
+      "address_hex": "$0000",
+      "sample_index": 0,
+      "path": "assets/charsets/charset-0000.bin",
+      "preview_path": "assets/charsets/charset-0000.png",
+      "note": null
+    },
+    {
+      "kind": "charset",
+      "address": 4096,
+      "address_hex": "$1000",
+      "sample_index": 10,
+      "path": "assets/charsets/charset-1000.bin",
+      "preview_path": "assets/charsets/charset-1000.png",
+      "note": null
+    },
+    {
+      "kind": "charset",
+      "address": 14336,
+      "address_hex": "$3800",
+      "sample_index": 633,
+      "path": "assets/charsets/charset-3800.bin",
+      "preview_path": "assets/charsets/charset-3800.png",
+      "note": null
+    },
+    {
+      "kind": "charset",
+      "address": 20480,
+      "address_hex": "$5000",
+      "sample_index": 674,
+      "path": "assets/charsets/charset-5000.bin",
+      "preview_path": "assets/charsets/charset-5000.png",
+      "note": null
+    },
+    {
+      "kind": "charset",
+      "address": 2048,
+      "address_hex": "$0800",
+      "sample_index": 688,
+      "path": "assets/charsets/charset-0800.bin",
+      "preview_path": "assets/charsets/charset-0800.png",
+      "note": null
+    }
+  ],
+  "sprites": [
+    {
+      "kind": "sprite",
+      "address": 16128,
+      "address_hex": "$3f00",
+      "sample_index": 635,
+      "path": "assets/sprites/sprite-3f00-s0.bin",
+      "preview_path": "assets/sprites/sprite-3f00-s0.png",
+      "note": null
+    },
+    {
+      "kind": "sprite",
+      "address": 7232,
+      "address_hex": "$1c40",
+      "sample_index": 635,
+      "path": "assets/sprites/sprite-1c40-s1.bin",
+      "preview_path": "assets/sprites/sprite-1c40-s1.png",
+      "note": null
+    },
+    {
+      "kind": "sprite",
+      "address": 2432,
+      "address_hex": "$0980",
+      "sample_index": 635,
+      "path": "assets/sprites/sprite-0980-s2.bin",
+      "preview_path": "assets/sprites/sprite-0980-s2.png",
+      "note": "sprite was displayed in multicolor mode; preview is monochrome fallback"
+    },
+    {
+      "kind": "sprite",
+      "address": 15744,
+      "address_hex": "$3d80",
+      "sample_index": 635,
+      "path": "assets/sprites/sprite-3d80-s3.bin",
+      "preview_path": "assets/sprites/sprite-3d80-s3.png",
+      "note": "sprite was displayed in multicolor mode; preview is monochrome fallback"
+    },
+    {
+      "kind": "sprite",
+      "address": 4608,
+      "address_hex": "$1200",
+      "sample_index": 635,
+      "path": "assets/sprites/sprite-1200-s4.bin",
+      "preview_path": "assets/sprites/sprite-1200-s4.png",
+      "note": null
+    },
+    {
+      "kind": "sprite",
+      "address": 15424,
+      "address_hex": "$3c40",
+      "sample_index": 635,
+      "path": "assets/sprites/sprite-3c40-s5.bin",
+      "preview_path": "assets/sprites/sprite-3c40-s5.png",
+      "note": "sprite was displayed in multicolor mode; preview is monochrome fallback"
+    },
+    {
+      "kind": "sprite",
+      "address": 6208,
+      "address_hex": "$1840",
+      "sample_index": 635,
+      "path": "assets/sprites/sprite-1840-s6.bin",
+      "preview_path": "assets/sprites/sprite-1840-s6.png",
+      "note": "sprite was displayed in multicolor mode; preview is monochrome fallback"
+    },
+    {
+      "kind": "sprite",
+      "address": 9856,
+      "address_hex": "$2680",
+      "sample_index": 635,
+      "path": "assets/sprites/sprite-2680-s7.bin",
+      "preview_path": "assets/sprites/sprite-2680-s7.png",
+      "note": "sprite was displayed in multicolor mode; preview is monochrome fallback"
+    },
+    {
+      "kind": "sprite",
+      "address": 21504,
+      "address_hex": "$5400",
+      "sample_index": 674,
+      "path": "assets/sprites/sprite-5400-s0.bin",
+      "preview_path": "assets/sprites/sprite-5400-s0.png",
+      "note": null
+    },
+    {
+      "kind": "sprite",
+      "address": 28352,
+      "address_hex": "$6ec0",
+      "sample_index": 674,
+      "path": "assets/sprites/sprite-6ec0-s1.bin",
+      "preview_path": "assets/sprites/sprite-6ec0-s1.png",
+      "note": null
+    },
+    {
+      "kind": "sprite",
+      "address": 27328,
+      "address_hex": "$6ac0",
+      "sample_index": 674,
+      "path": "assets/sprites/sprite-6ac0-s2.bin",
+      "preview_path": "assets/sprites/sprite-6ac0-s2.png",
+      "note": null
+    },
+    {
+      "kind": "sprite",
+      "address": 26880,
+      "address_hex": "$6900",
+      "sample_index": 674,
+      "path": "assets/sprites/sprite-6900-s3.bin",
+      "preview_path": "assets/sprites/sprite-6900-s3.png",
+      "note": null
+    },
+    {
+      "kind": "sprite",
+      "address": 30144,
+      "address_hex": "$75c0",
+      "sample_index": 674,
+      "path": "assets/sprites/sprite-75c0-s4.bin",
+      "preview_path": "assets/sprites/sprite-75c0-s4.png",
+      "note": "sprite was displayed in multicolor mode; preview is monochrome fallback"
+    },
+    {
+      "kind": "sprite",
+      "address": 29056,
+      "address_hex": "$7180",
+      "sample_index": 674,
+      "path": "assets/sprites/sprite-7180-s6.bin",
+      "preview_path": "assets/sprites/sprite-7180-s6.png",
+      "note": "sprite was displayed in multicolor mode; preview is monochrome fallback"
+    },
+    {
+      "kind": "sprite",
+      "address": 27264,
+      "address_hex": "$6a80",
+      "sample_index": 674,
+      "path": "assets/sprites/sprite-6a80-s7.bin",
+      "preview_path": "assets/sprites/sprite-6a80-s7.png",
+      "note": null
+    },
+    {
+      "kind": "sprite",
+      "address": 18432,
+      "address_hex": "$4800",
+      "sample_index": 677,
+      "path": "assets/sprites/sprite-4800-s0.bin",
+      "preview_path": "assets/sprites/sprite-4800-s0.png",
+      "note": null
+    },
+    {
+      "kind": "sprite",
+      "address": 16960,
+      "address_hex": "$4240",
+      "sample_index": 677,
+      "path": "assets/sprites/sprite-4240-s1.bin",
+      "preview_path": "assets/sprites/sprite-4240-s1.png",
+      "note": null
+    },
+    {
+      "kind": "sprite",
+      "address": 17600,
+      "address_hex": "$44c0",
+      "sample_index": 677,
+      "path": "assets/sprites/sprite-44c0-s2.bin",
+      "preview_path": "assets/sprites/sprite-44c0-s2.png",
+      "note": null
+    },
+    {
+      "kind": "sprite",
+      "address": 18432,
+      "address_hex": "$4800",
+      "sample_index": 677,
+      "path": "assets/sprites/sprite-4800-s3.bin",
+      "preview_path": "assets/sprites/sprite-4800-s3.png",
+      "note": null
+    },
+    {
+      "kind": "sprite",
+      "address": 17280,
+      "address_hex": "$4380",
+      "sample_index": 677,
+      "path": "assets/sprites/sprite-4380-s4.bin",
+      "preview_path": "assets/sprites/sprite-4380-s4.png",
+      "note": "sprite was displayed in multicolor mode; preview is monochrome fallback"
+    },
+    {
+      "kind": "sprite",
+      "address": 17664,
+      "address_hex": "$4500",
+      "sample_index": 677,
+      "path": "assets/sprites/sprite-4500-s6.bin",
+      "preview_path": "assets/sprites/sprite-4500-s6.png",
+      "note": "sprite was displayed in multicolor mode; preview is monochrome fallback"
+    },
+    {
+      "kind": "sprite",
+      "address": 18432,
+      "address_hex": "$4800",
+      "sample_index": 677,
+      "path": "assets/sprites/sprite-4800-s7.bin",
+      "preview_path": "assets/sprites/sprite-4800-s7.png",
+      "note": null
+    },
+    {
+      "kind": "sprite",
+      "address": 16704,
+      "address_hex": "$4140",
+      "sample_index": 682,
+      "path": "assets/sprites/sprite-4140-s0.bin",
+      "preview_path": "assets/sprites/sprite-4140-s0.png",
+      "note": null
+    },
+    {
+      "kind": "sprite",
+      "address": 17536,
+      "address_hex": "$4480",
+      "sample_index": 682,
+      "path": "assets/sprites/sprite-4480-s1.bin",
+      "preview_path": "assets/sprites/sprite-4480-s1.png",
+      "note": null
+    },
+    {
+      "kind": "sprite",
+      "address": 16704,
+      "address_hex": "$4140",
+      "sample_index": 682,
+      "path": "assets/sprites/sprite-4140-s2.bin",
+      "preview_path": "assets/sprites/sprite-4140-s2.png",
+      "note": null
+    },
+    {
+      "kind": "sprite",
+      "address": 17280,
+      "address_hex": "$4380",
+      "sample_index": 682,
+      "path": "assets/sprites/sprite-4380-s3.bin",
+      "preview_path": "assets/sprites/sprite-4380-s3.png",
+      "note": null
+    },
+    {
+      "kind": "sprite",
+      "address": 17664,
+      "address_hex": "$4500",
+      "sample_index": 682,
+      "path": "assets/sprites/sprite-4500-s4.bin",
+      "preview_path": "assets/sprites/sprite-4500-s4.png",
+      "note": "sprite was displayed in multicolor mode; preview is monochrome fallback"
+    },
+    {
+      "kind": "sprite",
+      "address": 17216,
+      "address_hex": "$4340",
+      "sample_index": 682,
+      "path": "assets/sprites/sprite-4340-s6.bin",
+      "preview_path": "assets/sprites/sprite-4340-s6.png",
+      "note": "sprite was displayed in multicolor mode; preview is monochrome fallback"
+    },
+    {
+      "kind": "sprite",
+      "address": 17344,
+      "address_hex": "$43c0",
+      "sample_index": 682,
+      "path": "assets/sprites/sprite-43c0-s7.bin",
+      "preview_path": "assets/sprites/sprite-43c0-s7.png",
+      "note": null
+    },
+    {
+      "kind": "sprite",
+      "address": 0,
+      "address_hex": "$0000",
+      "sample_index": 687,
+      "path": "assets/sprites/sprite-0000-s0.bin",
+      "preview_path": "assets/sprites/sprite-0000-s0.png",
+      "note": null
+    },
+    {
+      "kind": "sprite",
+      "address": 0,
+      "address_hex": "$0000",
+      "sample_index": 687,
+      "path": "assets/sprites/sprite-0000-s2.bin",
+      "preview_path": "assets/sprites/sprite-0000-s2.png",
+      "note": null
+    },
+    {
+      "kind": "sprite",
+      "address": 0,
+      "address_hex": "$0000",
+      "sample_index": 687,
+      "path": "assets/sprites/sprite-0000-s5.bin",
+      "preview_path": "assets/sprites/sprite-0000-s5.png",
+      "note": "sprite was displayed in multicolor mode; preview is monochrome fallback"
+    },
+    {
+      "kind": "sprite",
+      "address": 0,
+      "address_hex": "$0000",
+      "sample_index": 687,
+      "path": "assets/sprites/sprite-0000-s7.bin",
+      "preview_path": "assets/sprites/sprite-0000-s7.png",
+      "note": null
+    },
+    {
+      "kind": "sprite",
+      "address": 9984,
+      "address_hex": "$2700",
+      "sample_index": 688,
+      "path": "assets/sprites/sprite-2700-s0.bin",
+      "preview_path": "assets/sprites/sprite-2700-s0.png",
+      "note": "sprite was displayed in multicolor mode; preview is monochrome fallback"
+    },
+    {
+      "kind": "sprite",
+      "address": 10176,
+      "address_hex": "$27c0",
+      "sample_index": 688,
+      "path": "assets/sprites/sprite-27c0-s1.bin",
+      "preview_path": "assets/sprites/sprite-27c0-s1.png",
+      "note": "sprite was displayed in multicolor mode; preview is monochrome fallback"
+    },
+    {
+      "kind": "sprite",
+      "address": 10368,
+      "address_hex": "$2880",
+      "sample_index": 688,
+      "path": "assets/sprites/sprite-2880-s2.bin",
+      "preview_path": "assets/sprites/sprite-2880-s2.png",
+      "note": "sprite was displayed in multicolor mode; preview is monochrome fallback"
+    },
+    {
+      "kind": "sprite",
+      "address": 10560,
+      "address_hex": "$2940",
+      "sample_index": 688,
+      "path": "assets/sprites/sprite-2940-s3.bin",
+      "preview_path": "assets/sprites/sprite-2940-s3.png",
+      "note": "sprite was displayed in multicolor mode; preview is monochrome fallback"
+    },
+    {
+      "kind": "sprite",
+      "address": 10368,
+      "address_hex": "$2880",
+      "sample_index": 688,
+      "path": "assets/sprites/sprite-2880-s4.bin",
+      "preview_path": "assets/sprites/sprite-2880-s4.png",
+      "note": "sprite was displayed in multicolor mode; preview is monochrome fallback"
+    },
+    {
+      "kind": "sprite",
+      "address": 10560,
+      "address_hex": "$2940",
+      "sample_index": 688,
+      "path": "assets/sprites/sprite-2940-s5.bin",
+      "preview_path": "assets/sprites/sprite-2940-s5.png",
+      "note": "sprite was displayed in multicolor mode; preview is monochrome fallback"
+    }
+  ]
+}

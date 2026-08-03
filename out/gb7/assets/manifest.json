@@ -1,0 +1,46 @@
+{
+  "manifest_path": "assets/manifest.json",
+  "screens": [
+    {
+      "kind": "screen",
+      "address": 0,
+      "address_hex": "$0000",
+      "sample_index": 0,
+      "path": "assets/screens/screen-0000.bin",
+      "preview_path": "assets/screens/screen-0000.png",
+      "note": "rendered in standard-text mode"
+    },
+    {
+      "kind": "screen",
+      "address": 1024,
+      "address_hex": "$0400",
+      "sample_index": 10,
+      "path": "assets/screens/screen-0400.bin",
+      "preview_path": "assets/screens/screen-0400.png",
+      "note": "rendered in standard-text mode"
+    }
+  ],
+  "charsets": [
+    {
+      "kind": "charset",
+      "address": 0,
+      "address_hex": "$0000",
+      "sample_index": 0,
+      "path": "assets/charsets/charset-0000.bin",
+      "preview_path": "assets/charsets/charset-0000.png",
+      "note": null
+    },
+    {
+      "kind": "charset",
+      "address": 4096,
+      "address_hex": "$1000",
+      "sample_index": 10,
+      "path": "assets/charsets/charset-1000.bin",
+      "preview_path": "assets/charsets/charset-1000.png",
+      "note": "character ROM (VIC bank 0/2 charset base)"
+    }
+  ],
+  "sprites": [
+
+  ]
+}

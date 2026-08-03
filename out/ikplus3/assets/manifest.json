@@ -1,0 +1,28 @@
+{
+  "manifest_path": "assets/manifest.json",
+  "screens": [
+    {
+      "kind": "screen",
+      "address": 1024,
+      "address_hex": "$0400",
+      "sample_index": 0,
+      "path": "assets/screens/screen-0400.bin",
+      "preview_path": "assets/screens/screen-0400.png",
+      "note": "rendered with charset $1000"
+    }
+  ],
+  "charsets": [
+    {
+      "kind": "charset",
+      "address": 4096,
+      "address_hex": "$1000",
+      "sample_index": 0,
+      "path": "assets/charsets/charset-1000.bin",
+      "preview_path": "assets/charsets/charset-1000.png",
+      "note": null
+    }
+  ],
+  "sprites": [
+
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "source_path": "/Users/mich/Downloads/Ghostbusters.d64",
+  "analysis_version": 1,
+  "emulator": {
+    "status": "captured",
+    "engine": "VICE x64sc binary monitor",
+    "address": "127.0.0.1:6502",
+    "seconds": 10,
+    "registers": {
+      "pc": 61024,
+      "a": 199,
+      "x": 215,
+      "y": 0,
+      "sp": 245,
+      "status": 39
+    },
+    "reset_vector": 64738,
+    "ram_snapshot_path": "snapshots/vice-capture.ram",
+    "ram_bytes": 65536,
+    "hardware_samples_path": "traces/hardware-samples.json",
+    "hardware_sample_count": 50,
+    "input_events_path": "traces/input-events.json",
+    "input_event_count": 18,
+    "game_start_frame": null
+  },
+  "extracted_files": [
+    {
+      "name": "GHOSTBUSTERS",
+      "file_type": "PRG",
+      "path": "disk/files/ghostbusters.prg",
+      "bytes": 32458,
+      "load_address": 2049,
+      "end_address_exclusive": 34505,
+      "checksum16": 62794,
+      "basic_sys": 2061
+    }
+  ]
+}

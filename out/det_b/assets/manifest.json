@@ -1,0 +1,63 @@
+{
+  "manifest_path": "assets/manifest.json",
+  "screens": [
+    {
+      "kind": "screen",
+      "address": 3072,
+      "address_hex": "$0c00",
+      "sample_index": 0,
+      "path": "assets/screens/screen-0c00.bin",
+      "preview_path": "assets/screens/screen-0c00.png",
+      "note": "rendered in multicolor-bitmap mode"
+    }
+  ],
+  "charsets": [
+    {
+      "kind": "charset",
+      "address": 12288,
+      "address_hex": "$3000",
+      "sample_index": 0,
+      "path": "assets/charsets/charset-3000.bin",
+      "preview_path": "assets/charsets/charset-3000.png",
+      "note": null
+    }
+  ],
+  "sprites": [
+    {
+      "kind": "sprite",
+      "address": 896,
+      "address_hex": "$0380",
+      "sample_index": 0,
+      "path": "assets/sprites/sprite-0380-e81c7f3a46fd0825.bin",
+      "preview_path": "assets/sprites/sprite-0380-e81c7f3a46fd0825.png",
+      "note": null
+    },
+    {
+      "kind": "sprite",
+      "address": 1920,
+      "address_hex": "$0780",
+      "sample_index": 0,
+      "path": "assets/sprites/sprite-0780-61ef147c45f8c825.bin",
+      "preview_path": "assets/sprites/sprite-0780-61ef147c45f8c825.png",
+      "note": null
+    },
+    {
+      "kind": "sprite",
+      "address": 8704,
+      "address_hex": "$2200",
+      "sample_index": 0,
+      "path": "assets/sprites/sprite-2200-4021d4b7b9370430.bin",
+      "preview_path": "assets/sprites/sprite-2200-4021d4b7b9370430.png",
+      "note": "multicolor sprite"
+    },
+    {
+      "kind": "sprite",
+      "address": 15936,
+      "address_hex": "$3e40",
+      "sample_index": 0,
+      "path": "assets/sprites/sprite-3e40-1dd32e012c1ada63.bin",
+      "preview_path": "assets/sprites/sprite-3e40-1dd32e012c1ada63.png",
+      "note": "multicolor sprite"
+    }
+  ]
+}

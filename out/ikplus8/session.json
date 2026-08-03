@@ -1,0 +1,108 @@
+{
+  "source_path": "/Users/mich/Downloads/International Karate Plus.d64",
+  "analysis_version": 1,
+  "emulator": {
+    "status": "captured",
+    "engine": "VICE x64sc binary monitor",
+    "address": "127.0.0.1:6502",
+    "seconds": 140,
+    "registers": {
+      "pc": 11806,
+      "a": 255,
+      "x": 255,
+      "y": 255,
+      "sp": 255,
+      "status": 161
+    },
+    "reset_vector": 64738,
+    "ram_snapshot_path": "snapshots/vice-capture.ram",
+    "ram_bytes": 65536,
+    "hardware_samples_path": "traces/hardware-samples.json",
+    "hardware_sample_count": 700,
+    "input_events_path": "traces/input-events.json",
+    "input_event_count": 252,
+    "game_start_frame": 6340
+  },
+  "extracted_files": [
+    {
+      "name": "----------------",
+      "file_type": "DEL",
+      "path": "disk/files/----------------.del",
+      "bytes": 254,
+      "load_address": null,
+      "end_address_exclusive": null,
+      "checksum16": 4502,
+      "basic_sys": null
+    },
+    {
+      "name": "IK. .HI 100..REM",
+      "file_type": "PRG",
+      "path": "disk/files/ik._.hi_100..rem.prg",
+      "bytes": 48838,
+      "load_address": 2049,
+      "end_address_exclusive": 50885,
+      "checksum16": 18334,
+      "basic_sys": 2059
+    },
+    {
+      "name": "IK. INTROS  .REM",
+      "file_type": "PRG",
+      "path": "disk/files/ik._intros__.rem.prg",
+      "bytes": 20446,
+      "load_address": 2049,
+      "end_address_exclusive": 22493,
+      "checksum16": 38457,
+      "basic_sys": 2059
+    },
+    {
+      "name": "IK. - TOP 30.REM",
+      "file_type": "PRG",
+      "path": "disk/files/ik._-_top_30.rem.prg",
+      "bytes": 219,
+      "load_address": 64947,
+      "end_address_exclusive": 65164,
+      "checksum16": 24166,
+      "basic_sys": null
+    },
+    {
+      "name": "----------------",
+      "file_type": "DEL",
+      "path": "disk/files/----------------.del",
+      "bytes": 254,
+      "load_address": null,
+      "end_address_exclusive": null,
+      "checksum16": 4502,
+      "basic_sys": null
+    },
+    {
+      "name": "I.KARATE 2...FLT",
+      "file_type": "PRG",
+      "path": "disk/files/i.karate_2...flt.prg",
+      "bytes": 42881,
+      "load_address": 2048,
+      "end_address_exclusive": 44927,
+      "checksum16": 15177,
+      "basic_sys": null
+    },
+    {
+      "name": "INTER.KARATE II.",
+      "file_type": "PRG",
+      "path": "disk/files/inter.karate_ii..prg",
+      "bytes": 45974,
+      "load_address": 2049,
+      "end_address_exclusive": 48021,
+      "checksum16": 63041,
+      "basic_sys": 2064
+    },
+    {
+      "name": "----------------",
+      "file_type": "DEL",
+      "path": "disk/files/----------------.del",
+      "bytes": 254,
+      "load_address": null,
+      "end_address_exclusive": null,
+      "checksum16": 4502,
+      "basic_sys": null
+    }
+  ]
+}

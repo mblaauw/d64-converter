@@ -17,23 +17,61 @@ This is not a magic source converter. The intended workflow is:
   -> hybrid clone shell
 ```
 
-## Current State
+## What works today
 
-The initial workspace contains:
+- **`c64re-d64`**: `.d64` parsing (35/40-track, with or without error-byte block),
+  directory + file-chain extraction, and a `D64Builder` for synthetic test
+  images (no copyrighted fixtures in the repo).
+- **`c64re-vice-bmp`**: a hand-rolled VICE binary-monitor client — event pump
+  (checkpoint/stop events are queued, not dropped), Dump/Undump savestates,
+  DisplayGet screenshots, bank/register discovery, CPU history, non-stopping
+  watchpoints, raster conditions, resource get/set. Protocol-tested.
+- **`c64re-cli analyze --vice`**: deterministic, frame-stepped capture:
+  1. Autostart the disk through the monitor (working copy, so the source
+     image is never modified).
+  2. Detect game start (t0) — screen base leaves `$0400`, PC leaves ROM.
+  3. Settle 900 frames, then Dump/Undump a savestate as the deterministic
+     anchor (VICE's drive I/O under warp is not cycle-deterministic).
+  4. Frame-step by VIC raster wrap; input scripted by frame number.
+  5. Carve screen/charset/sprite/bitmap bytes **at observation time**, dedupe
+     sprites by content hash, render in the correct display mode
+     (text / multicolor / ECM / hires / multicolor-bitmap) with color RAM.
+  6. Read RAM from the true `ram` bank; source chargen from ROM.
+  7. Optionally harvest SID write activity (`--sid-seconds`) from
+     non-stopping write watchpoints — SID registers are write-only, so
+     register-read dumps are open-bus garbage.
+- Reports: `blueprint.md`, `open-questions.md` (with the evidence needed to
+  close each), `hardware-samples.md` (one row per sample with display mode),
+  `assets.md`, `sid-writes.md`, `ram-diff.md`, `session.json`.
 
-- `c64re-d64`: real `.d64` directory parsing and file-chain extraction.
-- `c64re-provenance`: byte-level provenance flags.
-- `c64re-vic` / `c64re-sid`: hardware-state data models.
-- `c64re-trace`: analysis session and frame trace models.
-- `c64re-report`: Markdown report generation.
-- `c64re-cli`: first CLI commands.
-- `c64re-vice-bmp`, `c64re-probes`, `c64re-disasm`, `c64re-assets`, `c64re-hybrid`: compile-ready scaffolding for the next milestones.
+Verified on Ghostbusters and International Karate Plus: two consecutive runs
+produce byte-identical `hardware-samples.json` and `input-events.json`.
+
+## Scaffolding (compiles, not yet wired)
+
+These crates are placeholders for later milestones and are **not** used by
+the pipeline yet — the reports do not claim otherwise:
+
+- `c64re-provenance`, `c64re-trace`: data models for byte-level provenance
+  and frame traces (the VICE-backed approximation is the next step).
+- `c64re-probes`: probe experiment definitions (draft).
+- `c64re-disasm`: stub; `linear_stub_disassembly` is not a real 6502
+  decoder — the real one will be seeded by `CpuHistory` PCs.
+- `c64re-hybrid`: trait draft for the eventual native-routine replacement.
 
 ## Usage
 
 ```bash
 cargo run -p c64re-cli -- disk path/to/game.d64
-cargo run -p c64re-cli -- analyze path/to/game.d64 --out out/game
+cargo run -p c64re-cli -- analyze path/to/game.d64 --out out/game \
+  --vice --seconds 10 --sample-hz 5 --autoplay
 ```
 
-`analyze` currently performs the disk parse and writes a first `reports/blueprint.md`. VICE execution, provenance collection, and exact VIC/SID asset extraction are the next implementation steps.
+`analyze` parses the disk, extracts files, and (with `--vice`) runs the
+capture pipeline above. Requires a VICE `x64sc` on `PATH`.
+
+## License / content policy
+
+The repo ships no game images or extracted game content. `out/` is
+git-ignored; analyses are private-use only. Test fixtures are synthetic
+(`D64Builder`).

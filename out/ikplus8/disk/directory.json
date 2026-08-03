@@ -1,0 +1,74 @@
+[
+  {
+    "name": "----------------",
+    "file_type": "DEL",
+    "closed": true,
+    "locked": false,
+    "first_track": 18,
+    "first_sector": 0,
+    "blocks": 0
+  },
+  {
+    "name": "IK. .HI 100..REM",
+    "file_type": "PRG",
+    "closed": true,
+    "locked": false,
+    "first_track": 9,
+    "first_sector": 0,
+    "blocks": 193
+  },
+  {
+    "name": "IK. INTROS  .REM",
+    "file_type": "PRG",
+    "closed": true,
+    "locked": false,
+    "first_track": 29,
+    "first_sector": 0,
+    "blocks": 81
+  },
+  {
+    "name": "IK. - TOP 30.REM",
+    "file_type": "PRG",
+    "closed": true,
+    "locked": false,
+    "first_track": 33,
+    "first_sector": 4,
+    "blocks": 1
+  },
+  {
+    "name": "----------------",
+    "file_type": "DEL",
+    "closed": true,
+    "locked": false,
+    "first_track": 18,
+    "first_sector": 0,
+    "blocks": 0
+  },
+  {
+    "name": "I.KARATE 2...FLT",
+    "file_type": "PRG",
+    "closed": true,
+    "locked": false,
+    "first_track": 17,
+    "first_sector": 0,
+    "blocks": 169
+  },
+  {
+    "name": "INTER.KARATE II.",
+    "file_type": "PRG",
+    "closed": true,
+    "locked": false,
+    "first_track": 19,
+    "first_sector": 0,
+    "blocks": 181
+  },
+  {
+    "name": "----------------",
+    "file_type": "DEL",
+    "closed": true,
+    "locked": false,
+    "first_track": 18,
+    "first_sector": 0,
+    "blocks": 0
+  }
+]
