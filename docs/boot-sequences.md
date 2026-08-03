@@ -64,3 +64,21 @@ gameplay (KERNAL CHRIN — `keyboard_feed` works here).
 
 Multi-file (EA + LOADER). No intro keys needed; capture is non-deterministic
 (timing-dependent poll loop).
+
+**Working basis (snapshot workflow)**: launch VICE manually, play past the
+intro/load into gameplay, then dump the live state and analyze with the
+embedded core — no VICE capture needed:
+
+```
+cargo run -p c64re-cli -- snapshot out/hoa_live/game.ram 0aba --out out/hoa_live
+```
+
+The `snapshot` command runs the embedded 6502 core from a saved RAM image +
+PC and writes provenance/disassembly reports. Live state is captured with
+the `dump_state` example while the game is running (`--vice-addr` free VICE
+with `-binarymonitor`). Verified on HOA gameplay: 127 executed bytes across
+6 ranges including a bit-shift multiply routine ($08c5) and game logic at
+$4438/$7693, plus the game writing its own data at $9325-$939b.
+
+This is the repeatable pattern for games whose boot/intro can only be
+passed manually (IK+, HOA crack releases).

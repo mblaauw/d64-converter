@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::PathBuf;
 
-use clap::{Args, Parser, Subcommand};
+use clap::{Parser, Subcommand};
 
 use c64re_capture::{capture_with_vice, resolve_file_name, BootScript};
 use c64re_d64::{load_prg_into_ram, safe_filename, D64Image, ExtractedFileMetadata};
@@ -29,6 +29,9 @@ enum Command {
     },
     /// Parse the disk; optionally capture live emulator state with --vice.
     Analyze(AnalyzeArgs),
+    /// Analyze a saved RAM snapshot with the embedded 6502 core (no VICE):
+    /// run N cycles from a PC and report per-byte provenance + disassembly.
+    Snapshot(SnapshotArgs),
     /// Check the VICE binary monitor connection.
     ViceSmoke {
         /// host:port of the VICE binary monitor.
@@ -43,7 +46,24 @@ enum Command {
     },
 }
 
-#[derive(Args)]
+#[derive(clap::Args)]
+struct SnapshotArgs {
+    /// Raw 64K RAM image (e.g. from the dump_state example).
+    path: String,
+    /// PC to start execution from (hex, e.g. 0aba).
+    pc: String,
+    /// Output directory.
+    #[arg(long, default_value = "out/snapshot")]
+    out: PathBuf,
+    /// Emulated cycles to run (PAL ~1s = 985248).
+    #[arg(long, default_value_t = 10_000_000)]
+    cycles: u64,
+    /// Directory with VICE system ROMs (basic/kernal/chargen).
+    #[arg(long)]
+    rom_dir: Option<PathBuf>,
+}
+
+#[derive(clap::Args)]
 struct AnalyzeArgs {
     /// Path to the .d64 image.
     path: String,
@@ -109,6 +129,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         Command::Disk { path } => print_disk(&path)?,
         Command::Analyze(args) => analyze(&args)?,
         Command::ViceSmoke { addr } => vice_smoke(&addr)?,
+        Command::Snapshot(args) => snapshot(&args)?,
         Command::Replay { out } => {
             // The windowed player is the c64re-hybrid replay binary; the CLI
             // delegates so the heavy macroquad dep stays out of the main bin.
@@ -151,6 +172,76 @@ fn print_disk(path: &str) -> Result<(), Box<dyn std::error::Error>> {
             entry.name
         );
     }
+    Ok(())
+}
+
+/// Run the embedded 6502 core against a saved RAM snapshot: provenance +
+/// disassembly reports, no VICE needed. This is the working basis for
+/// games whose boot/intro can only be passed manually (e.g. the IK+ and
+/// Heart of Africa crack releases): play to gameplay once, dump the RAM
+/// (see the `dump_state` example), then analyze here.
+fn snapshot(args: &SnapshotArgs) -> Result<(), Box<dyn std::error::Error>> {
+    use c64re_machine::{Backend, C64Machine, RomImages};
+
+    let out = &args.out;
+    let reports = out.join("reports");
+    let traces = out.join("traces");
+    fs::create_dir_all(&reports)?;
+    fs::create_dir_all(&traces)?;
+
+    let pc = u16::from_str_radix(args.pc.trim_start_matches("$"), 16)
+        .map_err(|_| format!("invalid PC: {}", args.pc))?;
+    let rom_dir = match &args.rom_dir {
+        Some(dir) => dir.clone(),
+        None => c64re_machine::discover_vice_rom_dir()
+            .ok_or("system ROMs not found; pass --rom-dir (VICE share/C64)")?,
+    };
+    let roms = RomImages::load_from_vice_share(&rom_dir)?;
+    let ram = fs::read(&args.path)?;
+    let mut machine = C64Machine::from_snapshot(ram, &roms, pc);
+    println!(
+        "running {} cycles from pc=${pc:04x} on snapshot {}",
+        args.cycles, args.path
+    );
+    machine.run_cycles(args.cycles);
+    let provenance = machine.provenance().clone();
+    let counts = provenance.counts();
+
+    fs::write(
+        traces.join("embedded-provenance.json"),
+        c64re_report::provenance_json(&provenance),
+    )?;
+    fs::write(
+        reports.join("embedded-provenance.md"),
+        c64re_report::provenance_markdown(&provenance),
+    )?;
+    println!(
+        "provenance: {} executed bytes / {} read / {} written / {} wte across {} ranges",
+        counts.executed,
+        counts.cpu_read,
+        counts.cpu_written,
+        counts.write_then_execute,
+        c64re_report::provenance_markdown(&provenance)
+            .lines()
+            .count(),
+    );
+
+    let ram = machine.ram_snapshot().to_vec();
+    let lines = c64re_disasm::disassemble_executed(&ram, &provenance, 500);
+    fs::write(
+        traces.join("embedded-disassembly.json"),
+        c64re_report::disassembly_json(&lines),
+    )?;
+    fs::write(
+        reports.join("embedded-disassembly.md"),
+        c64re_report::disassembly_markdown(&lines, "Embedded Executed Code"),
+    )?;
+    println!("disassembly: {} executed instructions", lines.len());
+
+    // Save the post-run RAM image so the next analysis can continue from
+    // where this one ended (e.g. deeper into the game logic).
+    fs::write(out.join("post-run.ram"), &ram)?;
+    println!("wrote post-run.ram (continued state)");
     Ok(())
 }
 
