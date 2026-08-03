@@ -72,6 +72,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
                         let value = required_arg(args.next(), "missing --sid-seconds value")?;
                         options.sid_seconds = value.parse()?;
                     }
+                    "--cmdline-autostart" => options.cmdline_autostart = true,
                     unknown => return Err(format!("unknown argument: {unknown}").into()),
                 }
             }
@@ -105,6 +106,7 @@ struct AnalyzeOptions {
     autoplay: bool,
     autostart_file: Option<String>,
     sid_seconds: u64,
+    cmdline_autostart: bool,
     vice_addr: String,
 }
 
@@ -118,6 +120,7 @@ impl Default for AnalyzeOptions {
             autoplay: false,
             autostart_file: None,
             sid_seconds: 0,
+            cmdline_autostart: false,
             vice_addr: "127.0.0.1:6502".to_string(),
         }
     }
@@ -226,6 +229,7 @@ fn analyze(path: &str, options: &AnalyzeOptions) -> Result<(), Box<dyn std::erro
             options.sample_hz,
             options.autoplay,
             options.sid_seconds,
+            options.cmdline_autostart,
             &options.vice_addr,
         )?;
         fs::write(
@@ -615,9 +619,14 @@ fn capture_with_vice(
     sample_hz: u64,
     autoplay: bool,
     sid_seconds: u64,
+    cmdline_autostart: bool,
     addr: &str,
 ) -> Result<ViceCapture, Box<dyn std::error::Error>> {
-    let mut child = launch_vice(addr)?;
+    let mut child = if cmdline_autostart {
+        launch_vice_with_disk(disk_path, addr)?
+    } else {
+        launch_vice(addr)?
+    };
     let result = capture_with_running_vice(
         &mut child,
         assets,
@@ -628,6 +637,7 @@ fn capture_with_vice(
         disk_path,
         autostart_name,
         sid_seconds,
+        cmdline_autostart,
         addr,
     );
 
@@ -674,6 +684,36 @@ fn launch_vice(addr: &str) -> Result<Child, Box<dyn std::error::Error>> {
         .spawn()?)
 }
 
+/// Launch VICE with the disk on the command line: VICE's own autostart loads
+/// and runs the game, which some fastloaders (e.g. `.FLT`) require. Used with
+/// `--cmdline-autostart`.
+fn launch_vice_with_disk(disk_path: &str, addr: &str) -> Result<Child, Box<dyn std::error::Error>> {
+    let monitor_addr = if addr.contains("://") {
+        addr.to_string()
+    } else {
+        format!("ip4://{addr}")
+    };
+
+    Ok(Command::new("x64sc")
+        .args([
+            "-default",
+            "-warp",
+            "-silent",
+            "-drive8type",
+            "1541",
+            "-controlport2device",
+            "1",
+            "-binarymonitor",
+            "-binarymonitoraddress",
+            &monitor_addr,
+            disk_path,
+        ])
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()?)
+}
+
 #[allow(clippy::too_many_arguments)]
 fn capture_with_running_vice(
     child: &mut Child,
@@ -685,30 +725,41 @@ fn capture_with_running_vice(
     disk_path: &str,
     autostart_name: Option<&str>,
     sid_seconds: u64,
+    cmdline_autostart: bool,
     addr: &str,
 ) -> Result<ViceCapture, Box<dyn std::error::Error>> {
     let mut monitor = connect_with_retry(addr, Duration::from_secs(10))?;
     monitor.ping()?;
     monitor.set_read_timeout(Duration::from_secs(10))?;
 
-    // Canonical start: power-cycle the bare machine, then autostart the disk
-    // through the monitor. The load phase (drive I/O) is not
-    // cycle-deterministic, so we step loosely until the game enters its own
-    // video mode (t0), then dump a savestate and replay it for a
-    // deterministic capture.
-    monitor.power_cycle()?;
-    monitor.drain_events();
-    let autostart_target = match autostart_name {
-        Some(name) => format!("{disk_path}:{name}"),
-        None => disk_path.to_string(),
-    };
-    monitor.autostart(&autostart_target, true, 0)?;
-    let sync = monitor.wait_for_stop()?;
+    if cmdline_autostart {
+        // VICE already autostarted the disk on the command line and is
+        // running the game (this is the path for fastloader games). Skip the
+        // power-cycle + monitor autostart.
+        println!(
+            "connected to cmdline-autostarted VICE at pc=${:04x}",
+            monitor.registers()?.pc
+        );
+    } else {
+        // Canonical start: power-cycle the bare machine, then autostart the
+        // disk through the monitor. The load phase (drive I/O) is not
+        // cycle-deterministic, so we step loosely until the game enters its
+        // own video mode (t0), then dump a savestate and replay it for a
+        // deterministic capture.
+        monitor.power_cycle()?;
+        monitor.drain_events();
+        let autostart_target = match autostart_name {
+            Some(name) => format!("{disk_path}:{name}"),
+            None => disk_path.to_string(),
+        };
+        monitor.autostart(&autostart_target, true, 0)?;
+        let sync = monitor.wait_for_stop()?;
+        println!(
+            "autostart sync at pc=${:04x} ({sync:?})",
+            monitor.registers()?.pc
+        );
+    }
     let mut frame = 0_u64;
-    println!(
-        "autostart sync at pc=${:04x} ({sync:?})",
-        monitor.registers()?.pc
-    );
 
     let mut game_start_frame: Option<u64> = None;
     let mut game_screen_frames = 0_u64;
@@ -739,22 +790,22 @@ fn capture_with_running_vice(
         if frame.is_multiple_of(500) {
             println!("loading... frame {frame} (t0 not yet detected)");
         }
-        // t0 heuristic: screen base leaves the KERNAL default ($0400) and
-        // the PC settles outside ROM (in game RAM). Requires stability
-        // across several frames so the loader's transient screens don't
-        // qualify. (The IRQ vector is NOT part of this: many games keep the
-        // KERNAL IRQ handler.)
+        // t0 heuristic: the CPU has left ROM (running game code in RAM) and
+        // the machine is in a stable state across several frames. The screen
+        // base check alone is unreliable: some games keep the video matrix
+        // at $0400 while switching charsets. (The IRQ vector is not checked
+        // either: many games keep the KERNAL IRQ handler.)
         let d018 = monitor.read_memory(0xd018, 0xd018)?;
-        let screen_base =
-            (u16::from(d018.first().copied().unwrap_or_default() >> 4) & 0x0f) * 0x0400;
         let pc = monitor.registers()?.pc;
-        let in_game = screen_base != 0x0400 && (0x0200..0xa000).contains(&pc);
+        let in_game =
+            (0x0200..0xa000).contains(&pc) && d018.first().copied().unwrap_or_default() != 0x15;
         if in_game {
             game_screen_frames += 1;
             if game_screen_frames >= 30 {
                 game_start_frame = Some(frame);
                 println!(
-                    "game start (t0) detected at frame {frame}: pc=${pc:04x} screen=${screen_base:04x}"
+                    "game start (t0) detected at frame {frame}: pc=${pc:04x} d018=${:02x}",
+                    d018.first().copied().unwrap_or_default()
                 );
             }
         } else {
