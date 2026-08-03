@@ -61,18 +61,27 @@ signals, not bugs.
 Verified on Ghostbusters and International Karate Plus: two consecutive runs
 produce byte-identical `hardware-samples.json` and `input-events.json`.
 
-## Scaffolding (compiles, not yet wired)
+## Embedded core & hybrid shell
 
-These crates are placeholders for later milestones and are **not** used by
-the pipeline yet — the reports do not claim otherwise:
+- `c64re-cpu`: a real NMOS 6502 core (official + common undocumented
+  opcodes, cycle timing, page-cross penalties).
+- `c64re-machine`: C64 memory map with `$01` banking and a
+  provenance-recording bus; `--embedded` runs the core against the captured
+  RAM snapshot and reports true per-byte executed/read/written/
+  write-then-execute ranges (self-modifying code detection).
+- `c64re-hybrid`: windowed playback of captured frames (macroquad), with
+  modern keyboard mapped to C64 joystick bits:
+  `cargo run -p c64re-hybrid --bin replay -- out/game`
+  (WASD/arrows = joystick, SPACE = fire, TAB = autoplay, R = restart).
 
-- `c64re-provenance`, `c64re-trace`: data models for byte-level provenance
-  and frame traces (the VICE-backed approximation is the next step).
-- `c64re-probes`: probe experiment definitions (draft).
-- `c64re-disasm`: real NMOS 6502 decoder (full opcode table, addressing
-  modes, operand formatting); `--disasm` does a coverage-seeded linear sweep
-  of executed code.
-- `c64re-hybrid`: trait draft for the eventual native-routine replacement.
+The `Backend` trait (machine crate) lets callers use either the embedded
+core or VICE interchangeably; `ViceBackend` (capture crate) is the
+compatibility fallback.
+
+Other data-model crates: `c64re-provenance`, `c64re-trace` (byte-level
+provenance and frame traces), `c64re-probes` (probe experiments),
+`c64re-disasm` (real NMOS 6502 decoder; `--disasm` does a coverage-seeded
+linear sweep of executed code).
 
 ## Usage
 

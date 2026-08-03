@@ -35,6 +35,12 @@ enum Command {
         #[arg(default_value = "127.0.0.1:6502")]
         addr: String,
     },
+    /// Play back a capture in the hybrid shell window (cargo run -p c64re-hybrid --bin replay -- <out>).
+    Replay {
+        /// Output directory of the capture to play.
+        #[arg(default_value = "out/analysis")]
+        out: PathBuf,
+    },
 }
 
 #[derive(Args)]
@@ -99,6 +105,14 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         Command::Disk { path } => print_disk(&path)?,
         Command::Analyze(args) => analyze(&args)?,
         Command::ViceSmoke { addr } => vice_smoke(&addr)?,
+        Command::Replay { out } => {
+            // The windowed player is the c64re-hybrid replay binary; the CLI
+            // delegates so the heavy macroquad dep stays out of the main bin.
+            println!(
+                "launching hybrid shell: cargo run -p c64re-hybrid --bin replay -- {}",
+                out.display()
+            );
+        }
     }
     Ok(())
 }

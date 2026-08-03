@@ -5,6 +5,7 @@ use std::io::BufWriter;
 use std::path::Path;
 
 pub use c64re_capture::{CHARSET_BYTES, SCREEN_BYTES, SPRITE_BYTES};
+use c64re_vic::DisplayMode;
 
 pub const SPRITE_WIDTH: usize = 24;
 pub const SPRITE_HEIGHT: usize = 21;
@@ -366,6 +367,110 @@ pub fn render_text_screen_rgba(
             }
         }
     }
+    Some(rgba)
+}
+
+/// Compose a full 320x200 frame: render the screen in its actual display
+/// mode, then blit the enabled sprites at their hardware positions.
+///
+/// `sprite_x`/`sprite_y` are the VIC sprite coordinates (0-511 / 0-255);
+/// Y-expanded sprites are drawn doubled vertically. Sprites use
+/// transparent-background RGBA so they composite over the screen.
+pub fn compose_frame_rgba(sample: &c64re_capture::HardwareSample, screen_rgba: &mut [u8]) {
+    let width = SCREEN_WIDTH_CHARS * 8;
+    for sprite_index in 0..8 {
+        if !sample.vic.sprite_enabled(sprite_index) {
+            continue;
+        }
+        let Some(block) = sample.carved.sprites[sprite_index].as_deref() else {
+            continue;
+        };
+        let (sprite_rgba, sprite_w) = if sample.vic.sprite_multicolor(sprite_index) {
+            let rgba = render_sprite_multicolor_rgba(
+                block,
+                sample.vic.sprite_colors_d027_d02e[sprite_index],
+                sample.vic.multicolor_0_d025,
+                sample.vic.multicolor_1_d026,
+            )
+            .unwrap_or_default();
+            (rgba, SPRITE_WIDTH)
+        } else {
+            let rgba = render_sprite_rgba(block, sample.vic.sprite_colors_d027_d02e[sprite_index])
+                .unwrap_or_default();
+            (rgba, SPRITE_WIDTH)
+        };
+        let x_expand = sample.vic.sprite_x_expanded(sprite_index);
+        let y_expand = sample.vic.sprite_y_expanded(sprite_index);
+        let x = usize::from(sample.vic.sprite_x[sprite_index]);
+        let y = usize::from(sample.vic.sprite_y[sprite_index]);
+        for sy in 0..SPRITE_HEIGHT {
+            let ty = y.wrapping_add(sy);
+            if ty >= 200 {
+                continue;
+            }
+            for sx in 0..sprite_w {
+                let tx = x.wrapping_add(sx);
+                if tx >= width {
+                    continue;
+                }
+                let offset = (sy * sprite_w + sx) * 4;
+                let alpha = sprite_rgba[offset + 3];
+                if alpha == 0 {
+                    continue;
+                }
+                let dst = (ty * width + tx) * 4;
+                screen_rgba[dst..dst + 4].copy_from_slice(&sprite_rgba[offset..offset + 4]);
+                if x_expand && tx + 1 < width {
+                    let dst2 = ((ty * width) + tx + 1) * 4;
+                    screen_rgba[dst2..dst2 + 4].copy_from_slice(&sprite_rgba[offset..offset + 4]);
+                }
+                if y_expand && ty + 1 < 200 {
+                    let dst3 = ((ty + 1) * width + tx) * 4;
+                    screen_rgba[dst3..dst3 + 4].copy_from_slice(&sprite_rgba[offset..offset + 4]);
+                }
+            }
+        }
+    }
+}
+
+/// Render the full frame for a captured sample: display-mode-aware screen
+/// plus sprites. Returns 320x200 RGBA.
+pub fn render_frame_rgba(sample: &c64re_capture::HardwareSample) -> Option<Vec<u8>> {
+    let width = SCREEN_WIDTH_CHARS * 8;
+    let height = SCREEN_HEIGHT_CHARS * 8;
+    let mut rgba = vec![0_u8; width * height * 4];
+    let screen = sample.carved.screen.as_deref()?;
+    let filled = match sample.display_mode {
+        DisplayMode::StandardText | DisplayMode::ExtendedBackground => {
+            sample.carved.charset.as_deref().and_then(|charset| {
+                render_text_screen_rgba(screen, charset, sample.vic.background_color_d021, 1)
+            })
+        }
+        DisplayMode::MulticolorText => sample.carved.charset.as_deref().and_then(|charset| {
+            render_multicolor_text_rgba(
+                screen,
+                charset,
+                &sample.color_ram,
+                sample.vic.background_color_d021,
+                sample.vic.multicolor_0_d025,
+                sample.vic.multicolor_1_d026,
+            )
+        }),
+        DisplayMode::HiresBitmap => sample.carved.bitmap.as_deref().and_then(|bitmap| {
+            render_hires_bitmap_rgba(bitmap, &sample.color_ram, sample.vic.background_color_d021)
+        }),
+        DisplayMode::MulticolorBitmap => sample.carved.bitmap.as_deref().and_then(|bitmap| {
+            render_multicolor_bitmap_rgba(
+                bitmap,
+                &sample.color_ram,
+                sample.vic.background_color_d021,
+                sample.vic.background_1_d022,
+                sample.vic.background_2_d023,
+            )
+        }),
+    }?;
+    rgba.copy_from_slice(&filled);
+    compose_frame_rgba(sample, &mut rgba);
     Some(rgba)
 }
 
