@@ -103,6 +103,80 @@ impl CarvedSample {
     }
 }
 
+/// One key press in a boot script, scheduled by frame offset relative to
+/// the previous step (or to the title-screen detection for the first).
+///
+/// Calibrated on International Karate Plus (C64HQ crack release) by
+/// observing a manual playthrough: the crack intro shows a title screen
+/// (d018=$13, wait loop at $2e00), then SPACE+ESC advances past it into the
+/// game loader; an instruction screen follows (ESC), and finally the
+/// highscore-flush prompt needs Y. Frame offsets are generous because the
+/// load phase is not cycle-deterministic; each key is re-sent every
+/// `retry_every` frames until the screen signature changes.
+#[derive(Debug, Clone)]
+pub struct BootKeyStep {
+    /// PETSCII bytes to feed (e.g. 0x20 SPACE, 0x1b ESC, 0x59 Y).
+    pub keys: Vec<u8>,
+    /// Send the first time this many frames after the previous step fired.
+    pub start_after_frames: u64,
+    /// If the screen has not advanced, re-send every N frames.
+    pub retry_every: u64,
+    /// Stop sending once the screen signature no longer matches (advanced).
+    pub advance_signature: Option<String>,
+}
+
+/// A complete boot script: keys fed while the game boots, before t0.
+#[derive(Debug, Clone, Default)]
+pub struct BootScript {
+    /// Optional PC range that must be observed (any frame) before the first
+    /// step fires. Used to gate on the title screen of a crack intro, which
+    /// only appears after a non-deterministic load phase.
+    pub start_gate_pc: Option<(u16, u16)>,
+    /// Frames to keep the t0 heuristic suppressed after the last key is
+    /// fed, so the game has time to process the keys and advance past the
+    /// intro before the capture anchor is chosen.
+    pub post_grace_frames: u64,
+    pub steps: Vec<BootKeyStep>,
+}
+
+/// Built-in boot script for International Karate Plus (C64HQ crack release):
+/// SPACE, then ESC on the intro title; ESC after the loader; Y for the
+/// highscore flush. Calibrated from a manual playthrough. The title wait
+/// loop runs at $2e00-$2e30 (PC observed there continuously), so the script
+/// gates on that before feeding any keys.
+pub fn ikplus_boot_script() -> BootScript {
+    BootScript {
+        start_gate_pc: Some((0x2e00, 0x2e30)),
+        post_grace_frames: 500,
+        steps: vec![
+            BootKeyStep {
+                keys: vec![0x20], // SPACE
+                start_after_frames: 5,
+                retry_every: 60,
+                advance_signature: None,
+            },
+            BootKeyStep {
+                keys: vec![0x1b], // ESC
+                start_after_frames: 20,
+                retry_every: 60,
+                advance_signature: None,
+            },
+            BootKeyStep {
+                keys: vec![0x1b], // ESC on the instruction screen
+                start_after_frames: 150,
+                retry_every: 60,
+                advance_signature: None,
+            },
+            BootKeyStep {
+                keys: vec![0x59], // Y to flush the highscore table
+                start_after_frames: 150,
+                retry_every: 60,
+                advance_signature: None,
+            },
+        ],
+    }
+}
+
 /// One step of the autoplay input script, scheduled by frame number.
 #[derive(Debug, Clone)]
 pub struct InputStep {
@@ -143,6 +217,7 @@ pub fn capture_with_vice(
     sid_seconds: u64,
     cmdline_autostart: bool,
     addr: &str,
+    boot_script: Option<BootScript>,
 ) -> Result<ViceCapture, Box<dyn std::error::Error>> {
     let mut child = if cmdline_autostart {
         launch_vice_with_disk(disk_path, addr)?
@@ -161,6 +236,7 @@ pub fn capture_with_vice(
         sid_seconds,
         cmdline_autostart,
         addr,
+        boot_script,
     );
 
     if result.is_ok() {
@@ -194,8 +270,10 @@ pub fn launch_vice(addr: &str) -> Result<Child, Box<dyn std::error::Error>> {
             "-silent",
             "-drive8type",
             "1541",
+            "-controlport1device",
+            "io",
             "-controlport2device",
-            "1",
+            "io",
             "-binarymonitor",
             "-binarymonitoraddress",
             &monitor_addr,
@@ -223,8 +301,10 @@ fn launch_vice_with_disk(disk_path: &str, addr: &str) -> Result<Child, Box<dyn s
             "-silent",
             "-drive8type",
             "1541",
+            "-controlport1device",
+            "io",
             "-controlport2device",
-            "1",
+            "io",
             "-binarymonitor",
             "-binarymonitoraddress",
             &monitor_addr,
@@ -249,6 +329,7 @@ fn capture_with_running_vice(
     sid_seconds: u64,
     cmdline_autostart: bool,
     addr: &str,
+    boot_script: Option<BootScript>,
 ) -> Result<ViceCapture, Box<dyn std::error::Error>> {
     let mut monitor = connect_with_retry(addr, Duration::from_secs(10))?;
     monitor.ping()?;
@@ -286,6 +367,16 @@ fn capture_with_running_vice(
     let mut game_start_frame: Option<u64> = None;
     let mut game_screen_frames = 0_u64;
     let mut prev_raster = read_raster_line(&mut monitor)?;
+
+    // Boot script: feed keys at calibrated frame offsets to advance past
+    // crack intros / loaders into the actual game, BEFORE t0 anchoring.
+    let mut boot = boot_script;
+    let mut boot_step_idx = 0_usize;
+    let mut boot_next_send: Option<u64> = None;
+    let mut boot_pc_ok = false;
+    let mut boot_done_frame: Option<u64> = None;
+    let mut boot_grace: u64 = 0;
+
     while game_start_frame.is_none() {
         if let Some(status) = child.try_wait()? {
             return Err(format!("VICE exited early with status {status}").into());
@@ -313,6 +404,64 @@ fn capture_with_running_vice(
         if frame.is_multiple_of(500) {
             println!("loading... frame {frame} (t0 not yet detected)");
         }
+
+        // ---- boot script injection -----------------------------------
+        if let Some(script) = &boot {
+            // Gate: don't feed anything until the title loop is running.
+            if !boot_pc_ok {
+                if let Some((lo, hi)) = script.start_gate_pc {
+                    let p = monitor
+                        .registers_raw()?
+                        .iter()
+                        .find(|r| r.id == 3)
+                        .map(|r| r.value)
+                        .unwrap_or(0);
+                    if p >= lo && p <= hi {
+                        boot_pc_ok = true;
+                        boot_next_send = Some(frame);
+                        println!(
+                            "boot script: title gate hit at frame {frame} (pc=${p:04x})"
+                        );
+                    }
+                } else {
+                    boot_pc_ok = true;
+                    boot_next_send = Some(frame);
+                }
+            }
+            if boot_pc_ok && boot_step_idx >= script.steps.len() {
+                boot_grace = script.post_grace_frames;
+                println!(
+                    "boot script complete at frame {frame}; holding t0 for {boot_grace} frames"
+                );
+                boot_done_frame = Some(frame);
+            } else if boot_pc_ok {
+                let step = &script.steps[boot_step_idx];
+                let due = boot_next_send
+                    .map(|at| frame >= at)
+                    .unwrap_or(true);
+                if due {
+                    match monitor.keyboard_feed(&step.keys) {
+                        Ok(()) => {
+                            println!(
+                                "boot script: fed {} at frame {frame} (step {})",
+                                step.keys
+                                    .iter()
+                                    .map(|k| format!("${k:02x}"))
+                                    .collect::<Vec<_>>()
+                                    .join(","),
+                                boot_step_idx
+                            );
+                            boot_step_idx += 1;
+                            boot_next_send = Some(frame + step.start_after_frames);
+                        }
+                        Err(err) => println!("boot key feed failed: {err}"),
+                    }
+                }
+            }
+        }
+        if boot_done_frame.is_some() && boot.is_some() {
+            boot = None;
+        }
         // t0 heuristic: the game has taken over the VIC, stable across
         // several frames. Signal: the charset base is no longer the KERNAL
         // default ($1000, d018 bits 1-3 = 2) or the boot state ($0000, = 0),
@@ -331,7 +480,15 @@ fn capture_with_running_vice(
         let custom_charset = !matches!(charset_bits, 0 | 2);
         let moved_screen = !matches!(screen_bits, 0 | 1);
         let in_game = custom_charset || moved_screen;
-        if in_game {
+        // With a boot script, the intro/loader screens (e.g. d018=$75 for
+        // the IK+ crack intro) would fire t0 before the script's keys have
+        // advanced the game. Hold the heuristic until the script is done.
+        let in_grace = match boot_done_frame {
+            Some(done) => frame < done + boot_grace,
+            None => false,
+        };
+        let boot_pending = boot.is_some() || in_grace;
+        if in_game && !boot_pending {
             game_screen_frames += 1;
             if game_screen_frames >= 30 {
                 game_start_frame = Some(frame);
@@ -391,8 +548,8 @@ fn capture_with_running_vice(
         apply_joyport(
             &mut monitor,
             frame,
-            2,
             0,
+            0x1f,
             "neutral",
             &mut current_joy2,
             &mut input_events,
@@ -720,16 +877,11 @@ fn fixed_25(bytes: &[u8]) -> [u8; 25] {
 pub fn default_autoplay_script(seconds: u64) -> Vec<InputStep> {
     let mut steps = Vec::new();
     let total_frames = seconds * 50;
+    // Repeated fire taps: several games (e.g. International Karate Plus)
+    // advance through title -> trainer/menu screens on each press.
     let pattern = [
-        ("fire", 0x10_u16, 25_u64),
-        ("neutral", 0x00_u16, 25),
-        ("right", 0x08_u16, 40),
-        ("fire", 0x10_u16, 15),
-        ("neutral", 0x00_u16, 20),
-        ("left", 0x04_u16, 40),
-        ("up", 0x01_u16, 25),
-        ("down", 0x02_u16, 25),
-        ("neutral", 0x00_u16, 35),
+        ("fire", 0x0f_u16, 15_u64),
+        ("neutral", 0x1f_u16, 80),
     ];
 
     let mut cursor = 75_u64;
@@ -742,7 +894,7 @@ pub fn default_autoplay_script(seconds: u64) -> Vec<InputStep> {
             steps.push(InputStep {
                 start_frame: cursor,
                 end_frame: end,
-                port: 2,
+                port: 0,
                 value,
                 label,
             });
@@ -758,7 +910,7 @@ pub fn desired_joy_value(script: &[InputStep], frame: u64) -> (u16, u16, &'stati
         .iter()
         .find(|step| frame >= step.start_frame && frame < step.end_frame)
         .map(|step| (step.port, step.value, step.label))
-        .unwrap_or((2, 0, "neutral"))
+        .unwrap_or((0, 0x1f, "neutral"))
 }
 
 pub fn apply_joyport(
@@ -776,7 +928,7 @@ pub fn apply_joyport(
 
     let applied_port = match monitor.joyport_set(port, value) {
         Ok(()) => port,
-        Err(err) if port == 2 => {
+        Err(err) if port == 0 => {
             let _ = err;
             monitor.joyport_set(1, value)?;
             1

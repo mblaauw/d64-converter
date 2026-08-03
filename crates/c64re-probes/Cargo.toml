@@ -7,6 +7,7 @@ license.workspace = true
 [dependencies]
 c64re-capture = { path = "../c64re-capture" }
 c64re-vice-bmp = { path = "../c64re-vice-bmp" }
+c64re-disasm = { path = "../c64re-disasm" }
 serde = { version = "1", features = ["derive"] }
 
 [lints]

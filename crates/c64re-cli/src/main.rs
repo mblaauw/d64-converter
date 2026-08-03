@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 use clap::{Args, Parser, Subcommand};
 
-use c64re_capture::{capture_with_vice, resolve_file_name};
+use c64re_capture::{capture_with_vice, resolve_file_name, BootScript};
 use c64re_d64::{load_prg_into_ram, safe_filename, D64Image, ExtractedFileMetadata};
 use c64re_machine::Backend as _;
 use c64re_report::{
@@ -62,6 +62,10 @@ struct AnalyzeArgs {
     /// Apply the default autoplay input script.
     #[arg(long)]
     autoplay: bool,
+    /// Feed a boot-key script to get past crack intros/loaders before t0.
+    /// Built-in profiles: `ikplus` (SPACE, ESC, ESC, Y).
+    #[arg(long)]
+    boot_keys: Option<String>,
     /// Select a disk file by name (substring match).
     #[arg(long)]
     autostart_file: Option<String>,
@@ -209,6 +213,13 @@ fn analyze(args: &AnalyzeArgs) -> Result<(), Box<dyn std::error::Error>> {
             }
             None => None,
         };
+        let boot_script: Option<BootScript> = match args.boot_keys.as_deref() {
+            Some("ikplus") => Some(c64re_capture::ikplus_boot_script()),
+            Some(other) => {
+                return Err(format!("unknown boot-keys profile: {other} (built-in: ikplus)").into());
+            }
+            None => None,
+        };
         let capture = capture_with_vice(
             working_disk.to_str().ok_or("invalid working disk path")?,
             autostart_name.as_deref(),
@@ -220,6 +231,7 @@ fn analyze(args: &AnalyzeArgs) -> Result<(), Box<dyn std::error::Error>> {
             args.sid_seconds,
             args.cmdline_autostart,
             &args.vice_addr,
+            boot_script,
         )?;
         fs::write(
             reports.join("ram-diff.md"),

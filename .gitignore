@@ -1,5 +1,6 @@
 /target/
 /out/ghostbusters
+/out/ikplus*
 *.d64
 *.D64
 /.DS_Store

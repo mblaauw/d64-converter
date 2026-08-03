@@ -7,6 +7,7 @@ license.workspace = true
 [dependencies]
 c64re-cpu = { path = "../c64re-cpu" }
 c64re-provenance = { path = "../c64re-provenance" }
+c64re-disasm = { path = "../c64re-disasm" }
 
 [lints]
 workspace = true

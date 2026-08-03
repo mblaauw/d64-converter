@@ -21,17 +21,17 @@ impl ProbeInput {
     /// Convert to a single InputStep spanning the whole probe window.
     fn to_step(&self) -> InputStep {
         let (value, label) = match self {
-            Self::Idle { .. } => (0x00, "neutral"),
-            Self::HoldRight { .. } => (0x08, "right"),
-            Self::HoldLeft { .. } => (0x04, "left"),
-            Self::HoldUp { .. } => (0x01, "up"),
-            Self::HoldDown { .. } => (0x02, "down"),
-            Self::Fire { .. } => (0x10, "fire"),
+            Self::Idle { .. } => (0x1f, "neutral"),
+            Self::HoldRight { .. } => (0x17, "right"),
+            Self::HoldLeft { .. } => (0x1b, "left"),
+            Self::HoldUp { .. } => (0x1e, "up"),
+            Self::HoldDown { .. } => (0x1d, "down"),
+            Self::Fire { .. } => (0x0f, "fire"),
         };
         InputStep {
             start_frame: 0,
             end_frame: u64::MAX,
-            port: 2,
+            port: 0,
             value,
             label,
         }

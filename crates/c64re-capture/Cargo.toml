@@ -9,6 +9,7 @@ c64re-d64 = { path = "../c64re-d64" }
 c64re-machine = { path = "../c64re-machine" }
 c64re-provenance = { path = "../c64re-provenance" }
 c64re-vice-bmp = { path = "../c64re-vice-bmp" }
+c64re-disasm = { path = "../c64re-disasm" }
 c64re-vic = { path = "../c64re-vic" }
 serde = { version = "1", features = ["derive"] }
 
