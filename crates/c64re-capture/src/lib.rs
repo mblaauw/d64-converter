@@ -419,9 +419,7 @@ fn capture_with_running_vice(
                     if p >= lo && p <= hi {
                         boot_pc_ok = true;
                         boot_next_send = Some(frame);
-                        println!(
-                            "boot script: title gate hit at frame {frame} (pc=${p:04x})"
-                        );
+                        println!("boot script: title gate hit at frame {frame} (pc=${p:04x})");
                     }
                 } else {
                     boot_pc_ok = true;
@@ -436,9 +434,7 @@ fn capture_with_running_vice(
                 boot_done_frame = Some(frame);
             } else if boot_pc_ok {
                 let step = &script.steps[boot_step_idx];
-                let due = boot_next_send
-                    .map(|at| frame >= at)
-                    .unwrap_or(true);
+                let due = boot_next_send.map(|at| frame >= at).unwrap_or(true);
                 if due {
                     match monitor.keyboard_feed(&step.keys) {
                         Ok(()) => {
@@ -879,10 +875,7 @@ pub fn default_autoplay_script(seconds: u64) -> Vec<InputStep> {
     let total_frames = seconds * 50;
     // Repeated fire taps: several games (e.g. International Karate Plus)
     // advance through title -> trainer/menu screens on each press.
-    let pattern = [
-        ("fire", 0x0f_u16, 15_u64),
-        ("neutral", 0x1f_u16, 80),
-    ];
+    let pattern = [("fire", 0x0f_u16, 15_u64), ("neutral", 0x1f_u16, 80)];
 
     let mut cursor = 75_u64;
     while cursor < total_frames {

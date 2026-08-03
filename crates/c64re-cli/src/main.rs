@@ -216,7 +216,9 @@ fn analyze(args: &AnalyzeArgs) -> Result<(), Box<dyn std::error::Error>> {
         let boot_script: Option<BootScript> = match args.boot_keys.as_deref() {
             Some("ikplus") => Some(c64re_capture::ikplus_boot_script()),
             Some(other) => {
-                return Err(format!("unknown boot-keys profile: {other} (built-in: ikplus)").into());
+                return Err(
+                    format!("unknown boot-keys profile: {other} (built-in: ikplus)").into(),
+                );
             }
             None => None,
         };

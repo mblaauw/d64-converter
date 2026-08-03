@@ -31,9 +31,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let monitor_addr = "ip4://127.0.0.1:6503";
     let mut child = std::process::Command::new("x64sc")
         .args([
-            "-default", "-warp", "-silent", "-drive8type", "1541",
-            "-controlport1device", "io", "-controlport2device", "io",
-            "-binarymonitor", "-binarymonitoraddress", monitor_addr,
+            "-default",
+            "-warp",
+            "-silent",
+            "-drive8type",
+            "1541",
+            "-controlport1device",
+            "io",
+            "-controlport2device",
+            "io",
+            "-binarymonitor",
+            "-binarymonitoraddress",
+            monitor_addr,
             "/Users/mich/Downloads/International Karate Plus.d64",
         ])
         .stdin(std::process::Stdio::null())
@@ -49,8 +58,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             step_frames(&mut monitor, 100)?;
             frame += 100;
             let regs = monitor.registers_raw()?;
-            let pc = regs.iter().find(|r| r.id == 3).map(|r| r.value).unwrap_or(0);
-            let d018 = monitor.read_memory(0xd018, 0xd018)?.first().copied().unwrap_or(0);
+            let pc = regs
+                .iter()
+                .find(|r| r.id == 3)
+                .map(|r| r.value)
+                .unwrap_or(0);
+            let d018 = monitor
+                .read_memory(0xd018, 0xd018)?
+                .first()
+                .copied()
+                .unwrap_or(0);
             println!("frame {frame}: pc=${pc:04x} d018=${d018:02x}");
         }
         Ok(())
