@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -7,17 +7,21 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 use c64re_assets::{
-    render_charset_grid_rgba, render_sprite_rgba, render_text_screen_rgba, write_png_rgba,
-    CHARSET_BYTES, SCREEN_BYTES, SCREEN_HEIGHT_CHARS, SCREEN_WIDTH_CHARS, SPRITE_BYTES,
-    SPRITE_HEIGHT, SPRITE_WIDTH,
+    render_charset_grid_rgba, render_hires_bitmap_rgba, render_multicolor_bitmap_rgba,
+    render_multicolor_text_rgba, render_sprite_multicolor_rgba, render_sprite_rgba,
+    render_text_screen_rgba, write_png_rgba, CHARSET_BYTES, SCREEN_BYTES, SCREEN_HEIGHT_CHARS,
+    SCREEN_WIDTH_CHARS, SPRITE_BYTES, SPRITE_HEIGHT, SPRITE_WIDTH,
 };
 use c64re_d64::D64Image;
 use c64re_report::{
     blueprint_markdown, directory_json, disk_info_json, json_escape, open_questions_markdown,
 };
 use c64re_trace::AnalysisSession;
-use c64re_vic::VicState;
-use c64re_vice_bmp::ViceMonitor;
+use c64re_vic::{DisplayMode, VicState};
+use c64re_vice_bmp::{Memspace, ViceMonitor};
+
+/// VICE memory bank id for the "ram" bank (from BANKS_AVAILABLE).
+const RAM_BANK_ID: u16 = 1;
 
 fn main() {
     if let Err(err) = run() {
@@ -164,6 +168,12 @@ fn analyze(path: &str, options: &AnalyzeOptions) -> Result<(), Box<dyn std::erro
     fs::create_dir_all(&extracted)?;
     fs::create_dir_all(&snapshots)?;
 
+    // VICE's drive emulation can write back to the disk image (hi-score
+    // savers, BAM updates). Autostart a private copy so the source file is
+    // never modified; the copy is kept for reproducibility.
+    let working_disk = out.join("disk").join("working.d64");
+    fs::copy(path, &working_disk)?;
+
     let mut extracted_files = Vec::new();
     let mut static_ram = vec![0_u8; 65_536];
     for entry in &directory {
@@ -202,8 +212,9 @@ fn analyze(path: &str, options: &AnalyzeOptions) -> Result<(), Box<dyn std::erro
             None => None,
         };
         let capture = capture_with_vice(
-            path,
+            working_disk.to_str().ok_or("invalid working disk path")?,
             autostart_name.as_deref(),
+            &assets,
             &snapshots,
             options.seconds,
             options.sample_hz,
@@ -322,6 +333,46 @@ struct HardwareSample {
     vic: VicState,
     sid_registers: [u8; 25],
     sprite_pointers: [u8; 8],
+    color_ram: Vec<u8>,
+    display_mode: DisplayMode,
+    carved: CarvedSample,
+}
+
+/// Bytes carved from the emulator at observation time (while paused).
+#[derive(Debug, Clone, Default)]
+struct CarvedSample {
+    screen: Option<Vec<u8>>,
+    charset: Option<Vec<u8>>,
+    charset_is_rom: bool,
+    bitmap: Option<Vec<u8>>,
+    sprites: [Option<Vec<u8>>; 8],
+}
+
+impl CarvedSample {
+    /// Write the carved bytes as raw files next to the sample index.
+    fn write_raw(&self, dir: &Path, index: usize) -> std::io::Result<()> {
+        let prefix = format!("sample-{index:04}");
+        if let Some(bytes) = &self.screen {
+            fs::write(dir.join(format!("{prefix}-screen.bin")), bytes)?;
+        }
+        if let Some(bytes) = &self.charset {
+            let name = if self.charset_is_rom {
+                format!("{prefix}-charset-rom.bin")
+            } else {
+                format!("{prefix}-charset.bin")
+            };
+            fs::write(dir.join(name), bytes)?;
+        }
+        if let Some(bytes) = &self.bitmap {
+            fs::write(dir.join(format!("{prefix}-bitmap.bin")), bytes)?;
+        }
+        for (slot, bytes) in self.sprites.iter().enumerate() {
+            if let Some(bytes) = bytes {
+                fs::write(dir.join(format!("{prefix}-sprite-s{slot}.bin")), bytes)?;
+            }
+        }
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -521,6 +572,7 @@ fn resolve_file_name(
 fn capture_with_vice(
     disk_path: &str,
     autostart_name: Option<&str>,
+    assets: &Path,
     snapshots: &Path,
     seconds: u64,
     sample_hz: u64,
@@ -530,6 +582,7 @@ fn capture_with_vice(
     let mut child = launch_vice(addr)?;
     let result = capture_with_running_vice(
         &mut child,
+        assets,
         snapshots,
         seconds,
         sample_hz,
@@ -552,9 +605,11 @@ fn capture_with_vice(
     result
 }
 
-/// Launch VICE with the binary monitor only. The machine boots to the KERNAL
-/// in a canonical state; the game is attached and autostarted through the
-/// monitor so capture starts from a deterministic point.
+/// Launch VICE bare (no disk) with the binary monitor. The machine is then
+/// power-cycled and the game autostarted through the monitor, giving a
+/// canonical, deterministic start point. No warp: VICE's drive emulation is
+/// only cycle-deterministic without warp, which the savestate replay relies
+/// on.
 fn launch_vice(addr: &str) -> Result<Child, Box<dyn std::error::Error>> {
     let monitor_addr = if addr.contains("://") {
         addr.to_string()
@@ -565,7 +620,6 @@ fn launch_vice(addr: &str) -> Result<Child, Box<dyn std::error::Error>> {
     Ok(Command::new("x64sc")
         .args([
             "-default",
-            "-warp",
             "-silent",
             "-drive8type",
             "1541",
@@ -584,6 +638,7 @@ fn launch_vice(addr: &str) -> Result<Child, Box<dyn std::error::Error>> {
 #[allow(clippy::too_many_arguments)]
 fn capture_with_running_vice(
     child: &mut Child,
+    assets: &Path,
     snapshots: &Path,
     seconds: u64,
     sample_hz: u64,
@@ -596,9 +651,11 @@ fn capture_with_running_vice(
     monitor.ping()?;
     monitor.set_read_timeout(Duration::from_secs(10))?;
 
-    // 1. Deterministic boot: power-cycle, then autostart the disk image
-    // through the monitor. `autostart` re-enters the monitor when the load
-    // finishes, giving a fixed sync point regardless of wall-clock drift.
+    // Canonical start: power-cycle the bare machine, then autostart the disk
+    // through the monitor. The load phase (drive I/O) is not
+    // cycle-deterministic, so we step loosely until the game enters its own
+    // video mode (t0), then dump a savestate and replay it for a
+    // deterministic capture.
     monitor.power_cycle()?;
     monitor.drain_events();
     let autostart_target = match autostart_name {
@@ -608,13 +665,102 @@ fn capture_with_running_vice(
     monitor.autostart(&autostart_target, true, 0)?;
     let sync = monitor.wait_for_stop()?;
     let mut frame = 0_u64;
-    let pc0 = monitor.registers()?.pc;
-    println!("autostart sync at pc=${pc0:04x} ({sync:?})");
+    println!(
+        "autostart sync at pc=${:04x} ({sync:?})",
+        monitor.registers()?.pc
+    );
 
-    // 2. Frame stepping by raster wrap: step instructions until the VIC
-    // raster line wraps (high -> low), which marks exactly one PAL frame
-    // regardless of IRQ state. This is deterministic and works even while
-    // fastloaders disable interrupts.
+    let mut game_start_frame: Option<u64> = None;
+    let mut game_screen_frames = 0_u64;
+    let mut prev_raster = read_raster_line(&mut monitor)?;
+    while game_start_frame.is_none() {
+        if let Some(status) = child.try_wait()? {
+            return Err(format!("VICE exited early with status {status}").into());
+        }
+        // Raster increases monotonically within a PAL frame (0..311), so any
+        // decrease marks a frame boundary. 2500 instructions ≈ half a frame.
+        // If the CPU jams (illegal opcode), the raster stalls: bail out.
+        let mut wrapped = false;
+        for _ in 0..16 {
+            monitor.step_instructions(2500, false)?;
+            let raster = read_raster_line(&mut monitor)?;
+            wrapped = raster < prev_raster;
+            prev_raster = raster;
+            if wrapped {
+                break;
+            }
+        }
+        if !wrapped {
+            return Err(
+                "capture stalled during load: VIC raster stopped advancing (CPU jam or emulator halt)".into(),
+            );
+        }
+        frame += 1;
+        if frame.is_multiple_of(500) {
+            println!("loading... frame {frame} (t0 not yet detected)");
+        }
+        // t0 heuristic: screen base leaves the KERNAL default ($0400) and
+        // the PC settles outside ROM (in game RAM). Requires stability
+        // across several frames so the loader's transient screens don't
+        // qualify. (The IRQ vector is NOT part of this: many games keep the
+        // KERNAL IRQ handler.)
+        let d018 = monitor.read_memory(0xd018, 0xd018)?;
+        let screen_base =
+            (u16::from(d018.first().copied().unwrap_or_default() >> 4) & 0x0f) * 0x0400;
+        let pc = monitor.registers()?.pc;
+        let in_game = screen_base != 0x0400 && (0x0200..0xa000).contains(&pc);
+        if in_game {
+            game_screen_frames += 1;
+            if game_screen_frames >= 30 {
+                game_start_frame = Some(frame);
+                println!(
+                    "game start (t0) detected at frame {frame}: pc=${pc:04x} screen=${screen_base:04x}"
+                );
+            }
+        } else {
+            game_screen_frames = 0;
+        }
+    }
+
+    // Deterministic capture: step a settle period past t0 (so the game
+    // finishes any startup disk I/O and the drive goes idle), then dump the
+    // machine state and replay it for the actual capture. Frame stepping is
+    // deterministic without warp and with the drive idle; the drive's I/O
+    // phases are inherently non-deterministic, so the load and settle are
+    // captured loosely and the dump is the deterministic anchor.
+    const SETTLE_FRAMES: u64 = 900; // 18 s of game time
+    println!("settling for {SETTLE_FRAMES} frames after t0...");
+    let settle_target = frame + SETTLE_FRAMES;
+    while frame < settle_target {
+        let mut wrapped = false;
+        for _ in 0..16 {
+            monitor.step_instructions(2500, false)?;
+            let raster = read_raster_line(&mut monitor)?;
+            wrapped = raster < prev_raster;
+            prev_raster = raster;
+            if wrapped {
+                break;
+            }
+        }
+        if !wrapped {
+            return Err(
+                "capture stalled during settle: VIC raster stopped advancing (CPU jam or emulator halt)".into(),
+            );
+        }
+        frame += 1;
+        if frame.is_multiple_of(300) {
+            println!("settling... frame {frame}/{settle_target}");
+        }
+    }
+    let t0_frame = game_start_frame.unwrap_or(frame);
+    let savestate = snapshots.join("t0.vsf");
+    monitor.dump(savestate.to_str().unwrap_or("t0.vsf"), false, false)?;
+    monitor.undump(savestate.to_str().unwrap_or("t0.vsf"))?;
+    frame = 0;
+    println!(
+        "savestate at frame {t0_frame} (+{SETTLE_FRAMES} settle); capture replay starts at frame 0"
+    );
+
     let input_script = autoplay.then(|| default_autoplay_script(seconds));
     let mut current_joy2 = None;
     let mut input_events = Vec::new();
@@ -633,18 +779,12 @@ fn capture_with_running_vice(
     let total_frames = seconds * 50; // PAL
     let sample_every = sample_every_frames(sample_hz);
     let mut samples = Vec::new();
-    let mut game_start_frame: Option<u64> = None;
-    let mut prev_raster = read_raster_line(&mut monitor)?;
+    prev_raster = read_raster_line(&mut monitor)?;
     while frame < total_frames {
         if let Some(status) = child.try_wait()? {
             return Err(format!("VICE exited early with status {status}").into());
         }
-        // Advance in instruction chunks until the raster line wraps. Raster
-        // increases monotonically within a PAL frame (0..311), so any
-        // decrease marks a frame boundary. 2500 instructions ≈ half a frame,
-        // so a wrap is detected every couple of chunks. If the CPU jams
-        // (illegal opcode) or stops, the raster stalls: bail out after a
-        // fixed instruction budget instead of spinning forever.
+        // Advance in instruction chunks until the raster line wraps.
         let mut wrapped = false;
         for _ in 0..16 {
             monitor.step_instructions(2500, false)?;
@@ -678,22 +818,17 @@ fn capture_with_running_vice(
             )?;
         }
         if frame.is_multiple_of(sample_every) {
-            let sample = read_hardware_sample(&mut monitor, samples.len(), frame)?;
-            // t0 heuristic: once the screen base leaves the KERNAL default
-            // ($0400) and the CPU leaves ROM, the game has started.
-            if game_start_frame.is_none()
-                && sample.pc < 0xa000
-                && sample.vic.screen_base() != 0x0400
-            {
-                game_start_frame = Some(frame);
-            }
+            let sample =
+                read_hardware_sample(&mut monitor, samples.len(), frame, &assets.join("raw"))?;
             samples.push(sample);
         }
     }
 
     let registers = monitor.registers()?;
     let reset_vector = monitor.read_memory(0xfffc, 0xfffd)?;
-    let ram = monitor.read_memory(0x0000, 0xffff)?;
+    // True RAM view (bank "ram"): the CPU view returns KERNAL/BASIC ROM and
+    // I/O where banked in, losing RAM under those areas.
+    let ram = monitor.read_memory_in(Memspace::Main, 0x0000, 0xffff, false, RAM_BANK_ID)?;
     if ram.len() != 65_536 {
         return Err(format!("expected 65536 RAM bytes from VICE, got {}", ram.len()).into());
     }
@@ -750,6 +885,7 @@ fn read_hardware_sample(
     monitor: &mut ViceMonitor,
     index: usize,
     frame: u64,
+    carve_dir: &Path,
 ) -> Result<HardwareSample, Box<dyn std::error::Error>> {
     let registers = monitor.registers()?;
     let vic_registers = monitor.read_memory(0xd000, 0xd02e)?;
@@ -764,6 +900,41 @@ fn read_hardware_sample(
         vic.sprite_pointer_table(),
         vic.sprite_pointer_table().wrapping_add(7),
     )?);
+    // Color RAM $D800-$DBE7 (1000 bytes) accompanies the video matrix.
+    let color_ram = monitor.read_memory(0xd800, 0xdbe7)?;
+
+    // Carve the displayed bytes at observation time: read them while the
+    // emulator is paused, never from a later snapshot.
+    let mut carved = CarvedSample::default();
+    if let Some(screen) = read_bank_bytes(monitor, vic.screen_base(), SCREEN_BYTES)? {
+        carved.screen = Some(screen);
+    }
+    let charset_source = if vic.is_rom_charset() {
+        // Character ROM lives in the VICE "rom" bank at $D000.
+        read_rom_bank_bytes(monitor, ROM_CHARSET_ROM_ADDRESS, CHARSET_BYTES)?
+    } else {
+        read_bank_bytes(monitor, vic.charset_base(), CHARSET_BYTES)?
+    };
+    if let Some(charset) = charset_source {
+        carved.charset = Some(charset);
+        carved.charset_is_rom = vic.is_rom_charset();
+    }
+    if vic.uses_bitmap() {
+        carved.bitmap = read_bank_bytes(monitor, vic.bitmap_base(), 8000)?;
+    }
+    for (sprite_index, &pointer) in sprite_pointers.iter().enumerate() {
+        if !vic.sprite_enabled(sprite_index) {
+            continue;
+        }
+        let sprite_address = vic
+            .vic_bank_base()
+            .wrapping_add(u16::from(pointer) * SPRITE_BYTES as u16);
+        if let Some(bytes) = read_bank_bytes(monitor, sprite_address, SPRITE_BYTES)? {
+            carved.sprites[sprite_index] = Some(bytes);
+        }
+    }
+    fs::create_dir_all(carve_dir)?;
+    carved.write_raw(carve_dir, index)?;
 
     Ok(HardwareSample {
         index,
@@ -772,8 +943,54 @@ fn read_hardware_sample(
         vic,
         sid_registers,
         sprite_pointers,
+        color_ram,
+        display_mode: vic.display_mode(),
+        carved,
     })
 }
+
+/// Read bytes from the machine's current bank view (RAM where present).
+fn read_bank_bytes(
+    monitor: &mut ViceMonitor,
+    address: u16,
+    len: usize,
+) -> Result<Option<Vec<u8>>, Box<dyn std::error::Error>> {
+    if len == 0 {
+        return Ok(None);
+    }
+    let end = address.checked_add(len as u16 - 1);
+    let Some(end) = end else {
+        return Ok(None);
+    };
+    Ok(Some(monitor.read_memory(address, end)?))
+}
+
+/// Read bytes from the VICE "rom" bank (id 2), used for character ROM.
+fn read_rom_bank_bytes(
+    monitor: &mut ViceMonitor,
+    address: u16,
+    len: usize,
+) -> Result<Option<Vec<u8>>, Box<dyn std::error::Error>> {
+    if len == 0 {
+        return Ok(None);
+    }
+    let end = address.checked_add(len as u16 - 1);
+    let Some(end) = end else {
+        return Ok(None);
+    };
+    Ok(Some(monitor.read_memory_in(
+        Memspace::Main,
+        address,
+        end,
+        false,
+        ROM_BANK_ID,
+    )?))
+}
+
+/// Character ROM is visible at $D000 in the VICE "rom" bank.
+const ROM_CHARSET_ROM_ADDRESS: u16 = 0xd000;
+/// VICE memory bank id for the "rom" bank (from BANKS_AVAILABLE).
+const ROM_BANK_ID: u16 = 2;
 
 fn parse_vic_state(registers: &[u8], bank_select_dd00: u8) -> VicState {
     let mut sprite_x = [0_u16; 8];
@@ -791,15 +1008,24 @@ fn parse_vic_state(registers: &[u8], bank_select_dd00: u8) -> VicState {
         *color = registers.get(0x27 + index).copied().unwrap_or_default() & 0x0f;
     }
 
+    let reg = |index: usize| registers.get(index).copied().unwrap_or_default();
     VicState {
         bank_select_dd00,
-        memory_setup_d018: registers.get(0x18).copied().unwrap_or_default(),
-        sprite_enable_d015: registers.get(0x15).copied().unwrap_or_default(),
-        sprite_multicolor_d01c: registers.get(0x1c).copied().unwrap_or_default(),
+        memory_setup_d018: reg(0x18),
+        control_1_d011: reg(0x11),
+        control_2_d016: reg(0x16),
+        sprite_enable_d015: reg(0x15),
+        sprite_multicolor_d01c: reg(0x1c),
+        sprite_y_expand_d017: reg(0x17),
+        sprite_x_expand_d01d: reg(0x1d),
+        sprite_priority_d01b: reg(0x1b),
         sprite_extra_x_d010: extra_x,
-        background_color_d021: registers.get(0x21).copied().unwrap_or_default() & 0x0f,
-        multicolor_0_d025: registers.get(0x25).copied().unwrap_or_default() & 0x0f,
-        multicolor_1_d026: registers.get(0x26).copied().unwrap_or_default() & 0x0f,
+        background_color_d021: reg(0x21) & 0x0f,
+        background_1_d022: reg(0x22) & 0x0f,
+        background_2_d023: reg(0x23) & 0x0f,
+        background_3_d024: reg(0x24) & 0x0f,
+        multicolor_0_d025: reg(0x25) & 0x0f,
+        multicolor_1_d026: reg(0x26) & 0x0f,
         sprite_colors_d027_d02e: sprite_colors,
         sprite_x,
         sprite_y,
@@ -989,12 +1215,28 @@ fn hardware_samples_json(samples: &[HardwareSample]) -> String {
             sample.vic.memory_setup_d018
         ));
         out.push_str(&format!(
+            "      \"control_1_d011\": {},\n",
+            sample.vic.control_1_d011
+        ));
+        out.push_str(&format!(
+            "      \"control_2_d016\": {},\n",
+            sample.vic.control_2_d016
+        ));
+        out.push_str(&format!(
             "      \"screen_base\": {},\n",
             sample.vic.screen_base()
         ));
         out.push_str(&format!(
             "      \"charset_base\": {},\n",
             sample.vic.charset_base()
+        ));
+        out.push_str(&format!(
+            "      \"bitmap_base\": {},\n",
+            sample.vic.bitmap_base()
+        ));
+        out.push_str(&format!(
+            "      \"display_mode\": \"{}\",\n",
+            sample.display_mode.as_str()
         ));
         out.push_str(&format!(
             "      \"sprite_pointer_table\": {},\n",
@@ -1009,8 +1251,32 @@ fn hardware_samples_json(samples: &[HardwareSample]) -> String {
             sample.vic.sprite_multicolor_d01c
         ));
         out.push_str(&format!(
+            "      \"sprite_y_expand_d017\": {},\n",
+            sample.vic.sprite_y_expand_d017
+        ));
+        out.push_str(&format!(
+            "      \"sprite_x_expand_d01d\": {},\n",
+            sample.vic.sprite_x_expand_d01d
+        ));
+        out.push_str(&format!(
+            "      \"sprite_priority_d01b\": {},\n",
+            sample.vic.sprite_priority_d01b
+        ));
+        out.push_str(&format!(
             "      \"background_color_d021\": {},\n",
             sample.vic.background_color_d021
+        ));
+        out.push_str(&format!(
+            "      \"background_1_d022\": {},\n",
+            sample.vic.background_1_d022
+        ));
+        out.push_str(&format!(
+            "      \"background_2_d023\": {},\n",
+            sample.vic.background_2_d023
+        ));
+        out.push_str(&format!(
+            "      \"background_3_d024\": {},\n",
+            sample.vic.background_3_d024
         ));
         out.push_str(&format!(
             "      \"multicolor_0_d025\": {},\n",
@@ -1038,8 +1304,17 @@ fn hardware_samples_json(samples: &[HardwareSample]) -> String {
         ));
         out.push_str("    },\n");
         out.push_str(&format!(
-            "    \"sid_registers_d400_d418\": {}\n",
+            "    \"sid_registers_d400_d418\": {},\n",
             json_u8_array(&sample.sid_registers)
+        ));
+        out.push_str(&format!(
+            "    \"color_ram_d800_dbe7\": [{}]\n",
+            sample
+                .color_ram
+                .iter()
+                .map(u8::to_string)
+                .collect::<Vec<_>>()
+                .join(",")
         ));
         out.push_str("  }");
     }
@@ -1067,19 +1342,21 @@ fn hardware_samples_markdown(samples: &[HardwareSample]) -> String {
         ));
     }
     out.push('\n');
-    out.push_str("| # | frame | PC | D018 | screen | charset | sprites enabled | sprite pointers | bg | SID nonzero |\n");
-    out.push_str("| ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | ---: | ---: |\n");
+    out.push_str(
+        "| # | frame | PC | mode | D018 | screen | charset | sprites | bg | SID nonzero |\n",
+    );
+    out.push_str("| ---: | ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: |\n");
     for sample in samples.iter().take(80) {
         out.push_str(&format!(
-            "| {} | {} | {} | ${:02x} | {} | {} | {} | `{}` | ${:02x} | {} |\n",
+            "| {} | {} | {} | {} | ${:02x} | {} | {} | {} | ${:02x} | {} |\n",
             sample.index,
             sample.frame,
             hex16(sample.pc),
+            sample.display_mode.as_str(),
             sample.vic.memory_setup_d018,
             hex16(sample.vic.screen_base()),
             hex16(sample.vic.charset_base()),
             sample.vic.sprite_enable_d015.count_ones(),
-            hex_bytes(&sample.sprite_pointers),
             sample.vic.background_color_d021,
             sample
                 .sid_registers
@@ -1166,49 +1443,31 @@ fn extract_observed_assets(
     fs::create_dir_all(&charset_dir)?;
     fs::create_dir_all(&sprite_dir)?;
 
+    // Dedupe sprites by (address, content hash) so the same bytes carved from
+    // multiple slots/frames collapse into one asset, with frame references.
     let mut seen_screens = BTreeSet::new();
     let mut seen_charsets = BTreeSet::new();
-    let mut seen_sprites = BTreeSet::new();
+    let mut sprite_keys: BTreeMap<(u16, u64), usize> = BTreeMap::new();
     let mut screens = Vec::new();
     let mut charsets = Vec::new();
-    let mut sprites = Vec::new();
+    let mut sprites: Vec<SpriteAssetRecord> = Vec::new();
 
     for sample in &capture.samples {
         let screen_address = sample.vic.screen_base();
         if seen_screens.insert(screen_address) {
-            if let Some(screen) = ram_slice(&capture.ram, screen_address, SCREEN_BYTES) {
+            if let Some(screen) = sample.carved.screen.as_deref() {
                 let base = format!("screen-{}", hex_name(screen_address));
                 let raw_path = screen_dir.join(format!("{base}.bin"));
                 fs::write(&raw_path, screen)?;
                 let mut preview_path = None;
-                let note = if let Some(charset) =
-                    ram_slice(&capture.ram, sample.vic.charset_base(), CHARSET_BYTES)
-                {
-                    if let Some(rgba) = render_text_screen_rgba(
-                        screen,
-                        charset,
-                        sample.vic.background_color_d021,
-                        1,
-                    ) {
-                        let path = screen_dir.join(format!("{base}.png"));
-                        write_png_rgba(
-                            &path,
-                            (SCREEN_WIDTH_CHARS * 8) as u32,
-                            (SCREEN_HEIGHT_CHARS * 8) as u32,
-                            &rgba,
-                        )?;
-                        preview_path = Some(relative_asset_path(&path, assets_dir));
-                    }
-                    Some(format!(
-                        "rendered with charset {}",
-                        hex16(sample.vic.charset_base())
-                    ))
-                } else {
-                    Some(format!(
-                        "charset {} unavailable for preview",
-                        hex16(sample.vic.charset_base())
-                    ))
-                };
+                let note = render_screen_preview(
+                    sample,
+                    screen,
+                    &screen_dir,
+                    &base,
+                    assets_dir,
+                    &mut preview_path,
+                )?;
                 screens.push(AssetRecord {
                     kind: "screen",
                     address: screen_address,
@@ -1221,8 +1480,14 @@ fn extract_observed_assets(
         }
 
         let charset_address = sample.vic.charset_base();
-        if seen_charsets.insert(charset_address) {
-            if let Some(charset) = ram_slice(&capture.ram, charset_address, CHARSET_BYTES) {
+        let charset_key = if sample.carved.charset_is_rom {
+            // ROM charsets are shared; one asset for the ROM image.
+            u32::MAX
+        } else {
+            u32::from(charset_address)
+        };
+        if seen_charsets.insert(charset_key) {
+            if let Some(charset) = sample.carved.charset.as_deref() {
                 let base = format!("charset-{}", hex_name(charset_address));
                 let raw_path = charset_dir.join(format!("{base}.bin"));
                 fs::write(&raw_path, charset)?;
@@ -1232,13 +1497,17 @@ fn extract_observed_assets(
                     write_png_rgba(&path, 128, 128, &rgba)?;
                     preview_path = Some(relative_asset_path(&path, assets_dir));
                 }
+                let note = sample
+                    .carved
+                    .charset_is_rom
+                    .then(|| "character ROM (VIC bank 0/2 charset base)".to_string());
                 charsets.push(AssetRecord {
                     kind: "charset",
                     address: charset_address,
                     sample_index: sample.index,
                     path: relative_asset_path(&raw_path, assets_dir),
                     preview_path,
-                    note: None,
+                    note,
                 });
             }
         }
@@ -1247,43 +1516,53 @@ fn extract_observed_assets(
             if !sample.vic.sprite_enabled(sprite_index) {
                 continue;
             }
+            let Some(sprite) = sample.carved.sprites[sprite_index].as_deref() else {
+                continue;
+            };
             let pointer = sample.sprite_pointers[sprite_index];
             let sprite_address = sample
                 .vic
                 .vic_bank_base()
                 .wrapping_add(u16::from(pointer) * SPRITE_BYTES as u16);
-            if !seen_sprites.insert((sprite_address, sprite_index)) {
+            let hash = content_hash(sprite);
+            let key = (sprite_address, hash);
+            if let Some(&existing) = sprite_keys.get(&key) {
+                sprites[existing].frames.push(sample.frame);
+                sprites[existing].slots.push(sprite_index);
                 continue;
             }
-            if let Some(sprite) = ram_slice(&capture.ram, sprite_address, SPRITE_BYTES) {
-                let base = format!("sprite-{}-s{}", hex_name(sprite_address), sprite_index);
-                let raw_path = sprite_dir.join(format!("{base}.bin"));
-                fs::write(&raw_path, sprite)?;
-                let mut preview_path = None;
-                if let Some(rgba) =
-                    render_sprite_rgba(sprite, sample.vic.sprite_colors_d027_d02e[sprite_index])
-                {
-                    let path = sprite_dir.join(format!("{base}.png"));
-                    write_png_rgba(&path, SPRITE_WIDTH as u32, SPRITE_HEIGHT as u32, &rgba)?;
-                    preview_path = Some(relative_asset_path(&path, assets_dir));
-                }
-                let note = if sample.vic.sprite_multicolor_d01c & (1 << sprite_index) != 0 {
-                    Some(
-                        "sprite was displayed in multicolor mode; preview is monochrome fallback"
-                            .to_string(),
-                    )
-                } else {
-                    None
-                };
-                sprites.push(AssetRecord {
+            let index = sprites.len();
+            sprite_keys.insert(key, index);
+            let base = format!("sprite-{}-{:x}", hex_name(sprite_address), hash);
+            let raw_path = sprite_dir.join(format!("{base}.bin"));
+            fs::write(&raw_path, sprite)?;
+            let mut preview_path = None;
+            render_sprite_preview(
+                sample,
+                sprite_index,
+                sprite,
+                &sprite_dir,
+                &base,
+                assets_dir,
+                &mut preview_path,
+            )?;
+            let note = if sample.vic.sprite_multicolor(sprite_index) {
+                Some("multicolor sprite".to_string())
+            } else {
+                None
+            };
+            sprites.push(SpriteAssetRecord {
+                record: AssetRecord {
                     kind: "sprite",
                     address: sprite_address,
                     sample_index: sample.index,
                     path: relative_asset_path(&raw_path, assets_dir),
                     preview_path,
                     note,
-                });
-            }
+                },
+                frames: vec![sample.frame],
+                slots: vec![sprite_index],
+            });
         }
     }
 
@@ -1294,7 +1573,7 @@ fn extract_observed_assets(
         sprite_count: sprites.len(),
         screens,
         charsets,
-        sprites,
+        sprites: sprites.into_iter().map(|s| s.record).collect(),
     };
     fs::write(
         assets_dir.join("manifest.json"),
@@ -1303,10 +1582,103 @@ fn extract_observed_assets(
     Ok(summary)
 }
 
-fn ram_slice(ram: &[u8], address: u16, len: usize) -> Option<&[u8]> {
-    let start = usize::from(address);
-    let end = start.checked_add(len)?;
-    ram.get(start..end)
+/// Render the preview for a screen according to its actual display mode.
+fn render_screen_preview(
+    sample: &HardwareSample,
+    screen: &[u8],
+    screen_dir: &Path,
+    base: &str,
+    assets_dir: &Path,
+    preview_path: &mut Option<String>,
+) -> Result<Option<String>, Box<dyn std::error::Error>> {
+    let rgba = match sample.display_mode {
+        DisplayMode::StandardText | DisplayMode::ExtendedBackground => {
+            sample.carved.charset.as_deref().and_then(|charset| {
+                render_text_screen_rgba(screen, charset, sample.vic.background_color_d021, 1)
+            })
+        }
+        DisplayMode::MulticolorText => sample.carved.charset.as_deref().and_then(|charset| {
+            render_multicolor_text_rgba(
+                screen,
+                charset,
+                &sample.color_ram,
+                sample.vic.background_color_d021,
+                sample.vic.multicolor_0_d025,
+                sample.vic.multicolor_1_d026,
+            )
+        }),
+        DisplayMode::HiresBitmap => sample.carved.bitmap.as_deref().and_then(|bitmap| {
+            render_hires_bitmap_rgba(bitmap, &sample.color_ram, sample.vic.background_color_d021)
+        }),
+        DisplayMode::MulticolorBitmap => sample.carved.bitmap.as_deref().and_then(|bitmap| {
+            render_multicolor_bitmap_rgba(
+                bitmap,
+                &sample.color_ram,
+                sample.vic.background_color_d021,
+                sample.vic.background_1_d022,
+                sample.vic.background_2_d023,
+            )
+        }),
+    };
+    if let Some(rgba) = rgba {
+        let path = screen_dir.join(format!("{base}.png"));
+        write_png_rgba(
+            &path,
+            (SCREEN_WIDTH_CHARS * 8) as u32,
+            (SCREEN_HEIGHT_CHARS * 8) as u32,
+            &rgba,
+        )?;
+        *preview_path = Some(relative_asset_path(&path, assets_dir));
+    }
+    Ok(Some(format!(
+        "rendered in {} mode",
+        sample.display_mode.as_str()
+    )))
+}
+
+/// Render a sprite preview honoring multicolor mode.
+fn render_sprite_preview(
+    sample: &HardwareSample,
+    sprite_index: usize,
+    sprite: &[u8],
+    sprite_dir: &Path,
+    base: &str,
+    assets_dir: &Path,
+    preview_path: &mut Option<String>,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let rgba = if sample.vic.sprite_multicolor(sprite_index) {
+        render_sprite_multicolor_rgba(
+            sprite,
+            sample.vic.sprite_colors_d027_d02e[sprite_index],
+            sample.vic.multicolor_0_d025,
+            sample.vic.multicolor_1_d026,
+        )
+    } else {
+        render_sprite_rgba(sprite, sample.vic.sprite_colors_d027_d02e[sprite_index])
+    };
+    if let Some(rgba) = &rgba {
+        let path = sprite_dir.join(format!("{base}.png"));
+        write_png_rgba(&path, SPRITE_WIDTH as u32, SPRITE_HEIGHT as u32, rgba)?;
+        *preview_path = Some(relative_asset_path(&path, assets_dir));
+    }
+    Ok(())
+}
+
+/// Simple 64-bit content hash for dedupe.
+fn content_hash(bytes: &[u8]) -> u64 {
+    let mut hash = 0xcbf2_9ce4_8422_2325_u64;
+    for &byte in bytes {
+        hash ^= u64::from(byte);
+        hash = hash.wrapping_mul(0x1000_0000_01b3);
+    }
+    hash
+}
+
+#[derive(Debug, Clone)]
+struct SpriteAssetRecord {
+    record: AssetRecord,
+    frames: Vec<u64>,
+    slots: Vec<usize>,
 }
 
 fn relative_asset_path(path: &Path, assets_dir: &Path) -> String {
@@ -1439,15 +1811,16 @@ fn json_u16_array<const N: usize>(values: &[u16; N]) -> String {
     out
 }
 
-fn hex_bytes<const N: usize>(values: &[u8; N]) -> String {
-    let mut out = String::new();
-    for (index, value) in values.iter().enumerate() {
-        if index > 0 {
-            out.push(' ');
-        }
-        out.push_str(&format!("{value:02x}"));
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn hex_bytes_formats_space_separated() {
+        let formatted: Vec<String> = [0x00_u8, 0xea, 0x31]
+            .iter()
+            .map(|value| format!("{value:02x}"))
+            .collect();
+        assert_eq!(formatted.join(" "), "00 ea 31");
     }
-    out
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

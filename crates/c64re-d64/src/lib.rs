@@ -94,6 +94,20 @@ pub struct DiskInfo {
 #[derive(Debug, Clone)]
 pub struct D64Image {
     bytes: Vec<u8>,
+    tracks: u8,
+}
+
+/// Accepted image layouts: 35 or 40 tracks, optionally followed by the
+/// per-sector error-info block (one byte per sector).
+fn layout_for_len(len: usize) -> Option<u8> {
+    for tracks in [35_u8, 40] {
+        let sectors = total_sectors(tracks)?;
+        let base = sectors * SECTOR_SIZE;
+        if len == base || len == base + sectors {
+            return Some(tracks);
+        }
+    }
+    None
 }
 
 impl D64Image {
@@ -102,10 +116,14 @@ impl D64Image {
     }
 
     pub fn from_bytes(bytes: Vec<u8>) -> Result<Self, D64Error> {
-        if bytes.len() < standard_d64_len() || !bytes.len().is_multiple_of(SECTOR_SIZE) {
+        let Some(tracks) = layout_for_len(bytes.len()) else {
             return Err(D64Error::UnsupportedSize(bytes.len()));
-        }
-        Ok(Self { bytes })
+        };
+        Ok(Self { bytes, tracks })
+    }
+
+    pub fn tracks(&self) -> u8 {
+        self.tracks
     }
 
     pub fn directory(&self) -> Result<Vec<DirectoryEntry>, D64Error> {
@@ -200,8 +218,17 @@ pub fn sectors_on_track(track: u8) -> Option<u8> {
         18..=24 => Some(19),
         25..=30 => Some(18),
         31..=35 => Some(17),
+        36..=40 => Some(17),
         _ => None,
     }
+}
+
+fn total_sectors(tracks: u8) -> Option<usize> {
+    let mut total = 0_usize;
+    for track in 1..=tracks {
+        total += usize::from(sectors_on_track(track)?);
+    }
+    Some(total)
 }
 
 pub fn sector_offset(track: u8, sector: u8) -> Result<usize, D64Error> {
@@ -214,13 +241,6 @@ pub fn sector_offset(track: u8, sector: u8) -> Result<usize, D64Error> {
         .map(|prior| usize::from(sectors_on_track(prior).expect("validated track range")))
         .sum();
     Ok((prior_sectors + usize::from(sector)) * SECTOR_SIZE)
-}
-
-fn standard_d64_len() -> usize {
-    (1..=35)
-        .map(|track| usize::from(sectors_on_track(track).expect("known track")))
-        .sum::<usize>()
-        * SECTOR_SIZE
 }
 
 fn petscii_filename(bytes: &[u8]) -> String {
@@ -247,6 +267,22 @@ mod tests {
     fn computes_known_offsets() {
         assert_eq!(sector_offset(1, 0).unwrap(), 0);
         assert_eq!(sector_offset(18, 0).unwrap(), 357 * SECTOR_SIZE);
-        assert!(sector_offset(36, 0).is_err());
+        assert_eq!(sector_offset(36, 0).unwrap(), 683 * SECTOR_SIZE);
+        assert!(sector_offset(41, 0).is_err());
+    }
+
+    #[test]
+    fn accepts_standard_size_variants() {
+        for len in [174_848, 175_531, 196_608, 197_376] {
+            let image = D64Image::from_bytes(vec![0_u8; len]).expect("accepted size");
+            let expected_tracks = if len <= 175_531 { 35 } else { 40 };
+            assert_eq!(image.tracks(), expected_tracks, "len {len}");
+        }
+    }
+
+    #[test]
+    fn rejects_unknown_sizes() {
+        assert!(D64Image::from_bytes(vec![0_u8; 100]).is_err());
+        assert!(D64Image::from_bytes(vec![0_u8; 174_849]).is_err());
     }
 }

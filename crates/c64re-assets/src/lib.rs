@@ -99,6 +99,204 @@ pub fn render_sprite_rgba(block: &[u8], color: u8) -> Option<Vec<u8>> {
     Some(rgba)
 }
 
+/// Render a multicolor sprite: 12 wide-pixels per row (24 screen pixels),
+/// using the sprite color plus the shared multicolor pair ($D025/$D026).
+/// Pixel pairs: 00 = transparent, 01 = sprite color, 10 = mc0, 11 = mc1.
+pub fn render_sprite_multicolor_rgba(
+    block: &[u8],
+    sprite_color: u8,
+    mc0: u8,
+    mc1: u8,
+) -> Option<Vec<u8>> {
+    if block.len() < SPRITE_BYTES {
+        return None;
+    }
+    let palette = C64_PALETTE;
+    let colors = [
+        [0_u8; 3],
+        palette[usize::from(sprite_color & 0x0f)],
+        palette[usize::from(mc0 & 0x0f)],
+        palette[usize::from(mc1 & 0x0f)],
+    ];
+    let mut rgba = vec![0_u8; SPRITE_WIDTH * SPRITE_HEIGHT * 4];
+    for y in 0..SPRITE_HEIGHT {
+        for byte_x in 0..3 {
+            let byte = block[y * 3 + byte_x];
+            for pair in 0..4 {
+                let code = (byte >> (6 - pair * 2)) & 0x03;
+                let color = colors[usize::from(code)];
+                let x0 = byte_x * 8 + pair * 2;
+                for dx in 0..2 {
+                    let offset = (y * SPRITE_WIDTH + x0 + dx) * 4;
+                    rgba[offset] = color[0];
+                    rgba[offset + 1] = color[1];
+                    rgba[offset + 2] = color[2];
+                    rgba[offset + 3] = 0xff;
+                }
+            }
+        }
+    }
+    Some(rgba)
+}
+
+/// Render a multicolor text screen using the screen matrix, charset, and
+/// color RAM. Each character: even bits are the 4-color MC pattern,
+/// odd bits select between background color and color-RAM color.
+pub fn render_multicolor_text_rgba(
+    screen: &[u8],
+    charset: &[u8],
+    color_ram: &[u8],
+    background_color: u8,
+    mc0: u8,
+    mc1: u8,
+) -> Option<Vec<u8>> {
+    if screen.len() < SCREEN_BYTES || charset.len() < CHARSET_BYTES {
+        return None;
+    }
+    let color_ram = if color_ram.len() < SCREEN_BYTES {
+        &[0_u8; SCREEN_BYTES][..]
+    } else {
+        color_ram
+    };
+    let palette = C64_PALETTE;
+    let width = SCREEN_WIDTH_CHARS * 8;
+    let height = SCREEN_HEIGHT_CHARS * 8;
+    let mut rgba = vec![0_u8; width * height * 4];
+
+    for cy in 0..SCREEN_HEIGHT_CHARS {
+        for cx in 0..SCREEN_WIDTH_CHARS {
+            let ch = usize::from(screen[cy * SCREEN_WIDTH_CHARS + cx]);
+            let ram_color = palette[usize::from(color_ram[cy * SCREEN_WIDTH_CHARS + cx] & 0x0f)];
+            let bg = C64_PALETTE[usize::from(background_color & 0x0f)];
+            let mc_colors = [
+                bg,
+                ram_color,
+                palette[usize::from(mc0 & 0x0f)],
+                palette[usize::from(mc1 & 0x0f)],
+            ];
+            for row in 0..8 {
+                let bits = charset[ch * 8 + row];
+                for pair in 0..4 {
+                    // Multicolor text: pixel pairs from the left, each 2 bits.
+                    // 00 = background, 01 = color RAM, 10 = mc0, 11 = mc1.
+                    let hi = (bits >> (7 - pair * 2)) & 0x01;
+                    let lo = (bits >> (6 - pair * 2)) & 0x01;
+                    let code = usize::from((hi << 1) | lo);
+                    let color = mc_colors[code];
+                    let x = cx * 8 + pair * 2;
+                    let y = cy * 8 + row;
+                    for dx in 0..2 {
+                        let offset = (y * width + x + dx) * 4;
+                        rgba[offset] = color[0];
+                        rgba[offset + 1] = color[1];
+                        rgba[offset + 2] = color[2];
+                        rgba[offset + 3] = 0xff;
+                    }
+                }
+            }
+        }
+    }
+    Some(rgba)
+}
+
+/// Render a hires bitmap screen: 8000 bytes, 8 bytes per 8-pixel cell,
+/// color RAM selects the foreground color per cell.
+pub fn render_hires_bitmap_rgba(
+    bitmap: &[u8],
+    color_ram: &[u8],
+    background_color: u8,
+) -> Option<Vec<u8>> {
+    if bitmap.len() < 8000 {
+        return None;
+    }
+    let color_ram = if color_ram.len() < SCREEN_BYTES {
+        &[0_u8; SCREEN_BYTES][..]
+    } else {
+        color_ram
+    };
+    let palette = C64_PALETTE;
+    let width = SCREEN_WIDTH_CHARS * 8;
+    let height = SCREEN_HEIGHT_CHARS * 8;
+    let mut rgba = vec![0_u8; width * height * 4];
+
+    for cy in 0..SCREEN_HEIGHT_CHARS {
+        for cx in 0..SCREEN_WIDTH_CHARS {
+            let cell = cy * SCREEN_WIDTH_CHARS + cx;
+            let fg = palette[usize::from(color_ram[cell] & 0x0f)];
+            let bg = palette[usize::from(background_color & 0x0f)];
+            for row in 0..8 {
+                let bits = bitmap[cell * 8 + row];
+                for bit in 0..8 {
+                    let pixel_on = bits & (0x80 >> bit) != 0;
+                    let color = if pixel_on { fg } else { bg };
+                    let x = cx * 8 + bit;
+                    let y = cy * 8 + row;
+                    let offset = (y * width + x) * 4;
+                    rgba[offset] = color[0];
+                    rgba[offset + 1] = color[1];
+                    rgba[offset + 2] = color[2];
+                    rgba[offset + 3] = 0xff;
+                }
+            }
+        }
+    }
+    Some(rgba)
+}
+
+/// Render a multicolor bitmap screen: pixel pairs per cell use background,
+/// color-RAM, $D022, and $D023.
+pub fn render_multicolor_bitmap_rgba(
+    bitmap: &[u8],
+    color_ram: &[u8],
+    background_color: u8,
+    bg1: u8,
+    bg2: u8,
+) -> Option<Vec<u8>> {
+    if bitmap.len() < 8000 {
+        return None;
+    }
+    let color_ram = if color_ram.len() < SCREEN_BYTES {
+        &[0_u8; SCREEN_BYTES][..]
+    } else {
+        color_ram
+    };
+    let palette = C64_PALETTE;
+    let width = SCREEN_WIDTH_CHARS * 8;
+    let height = SCREEN_HEIGHT_CHARS * 8;
+    let mut rgba = vec![0_u8; width * height * 4];
+
+    for cy in 0..SCREEN_HEIGHT_CHARS {
+        for cx in 0..SCREEN_WIDTH_CHARS {
+            let cell = cy * SCREEN_WIDTH_CHARS + cx;
+            let colors = [
+                palette[usize::from(background_color & 0x0f)],
+                palette[usize::from(color_ram[cell] & 0x0f)],
+                palette[usize::from(bg1 & 0x0f)],
+                palette[usize::from(bg2 & 0x0f)],
+            ];
+            for row in 0..8 {
+                let bits = bitmap[cell * 8 + row];
+                for pair in 0..4 {
+                    let hi = (bits >> (7 - pair * 2)) & 0x01;
+                    let lo = (bits >> (6 - pair * 2)) & 0x01;
+                    let code = usize::from((hi << 1) | lo);
+                    let color = colors[code];
+                    let x = cx * 8 + pair * 2;
+                    let y = cy * 8 + row;
+                    for dx in 0..2 {
+                        let offset = (y * width + x + dx) * 4;
+                        rgba[offset] = color[0];
+                        rgba[offset + 1] = color[1];
+                        rgba[offset + 2] = color[2];
+                        rgba[offset + 3] = 0xff;
+                    }
+                }
+            }
+        }
+    }
+    Some(rgba)
+}
+
 pub fn render_charset_grid_rgba(charset: &[u8]) -> Option<Vec<u8>> {
     if charset.len() < CHARSET_BYTES {
         return None;
@@ -188,5 +386,31 @@ mod tests {
         let charset = [0_u8; CHARSET_BYTES];
         let rgba = render_charset_grid_rgba(&charset).unwrap();
         assert_eq!(rgba.len(), 128 * 128 * 4);
+    }
+
+    #[test]
+    fn renders_multicolor_sprite_size() {
+        let block = [0_u8; SPRITE_BYTES];
+        let rgba = render_sprite_multicolor_rgba(&block, 1, 5, 6).unwrap();
+        assert_eq!(rgba.len(), SPRITE_WIDTH * SPRITE_HEIGHT * 4);
+    }
+
+    #[test]
+    fn renders_multicolor_text_size() {
+        let screen = [0_u8; SCREEN_BYTES];
+        let charset = [0_u8; CHARSET_BYTES];
+        let color_ram = [0_u8; SCREEN_BYTES];
+        let rgba = render_multicolor_text_rgba(&screen, &charset, &color_ram, 0, 4, 14).unwrap();
+        assert_eq!(rgba.len(), 320 * 200 * 4);
+    }
+
+    #[test]
+    fn renders_bitmap_size() {
+        let bitmap = [0_u8; 8000];
+        let color_ram = [0_u8; SCREEN_BYTES];
+        let hires = render_hires_bitmap_rgba(&bitmap, &color_ram, 0).unwrap();
+        assert_eq!(hires.len(), 320 * 200 * 4);
+        let mc = render_multicolor_bitmap_rgba(&bitmap, &color_ram, 0, 1, 2).unwrap();
+        assert_eq!(mc.len(), 320 * 200 * 4);
     }
 }
