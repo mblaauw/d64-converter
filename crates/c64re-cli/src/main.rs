@@ -61,6 +61,12 @@ struct AnalyzeArgs {
     /// Harvest SID write activity for N seconds.
     #[arg(long, default_value_t = 0)]
     sid_seconds: u64,
+    /// Run probe experiments (controlled inputs) against the savestate.
+    #[arg(long)]
+    probe: bool,
+    /// Collect an approximate execution-coverage map from CpuHistory.
+    #[arg(long)]
+    provenance: bool,
     /// Autostart via VICE command line (for fastloader games).
     #[arg(long)]
     cmdline_autostart: bool,
@@ -260,6 +266,47 @@ fn analyze(args: &AnalyzeArgs) -> Result<(), Box<dyn std::error::Error>> {
                 capture.input_events.len()
             ));
         }
+        if args.probe || args.provenance {
+            let t0 = snapshots.join("t0.vsf");
+            if t0.exists() {
+                if args.probe {
+                    let findings = run_probes(&args.vice_addr, &t0, &traces)?;
+                    fs::write(
+                        traces.join("probe-findings.json"),
+                        c64re_report::probe_findings_json(&findings),
+                    )?;
+                    fs::write(
+                        reports.join("probe-findings.md"),
+                        c64re_report::probe_findings_markdown(&findings),
+                    )?;
+                    session.notes.push(format!(
+                        "Probe experiments found {} input-sensitive ranges.",
+                        findings.len()
+                    ));
+                }
+                if args.provenance {
+                    let provenance = run_provenance(&args.vice_addr, &t0)?;
+                    fs::write(
+                        traces.join("provenance.json"),
+                        c64re_report::provenance_json(&provenance),
+                    )?;
+                    fs::write(
+                        reports.join("provenance.md"),
+                        c64re_report::provenance_markdown(&provenance),
+                    )?;
+                    let counts = provenance.counts();
+                    session.notes.push(format!(
+                        "Execution coverage: {} executed bytes across {} distinct ranges.",
+                        counts.executed,
+                        c64re_report::provenance_markdown(&provenance)
+                            .lines()
+                            .count()
+                    ));
+                }
+            } else {
+                eprintln!("warning: no savestate at {t0:?}; skipping probes/provenance");
+            }
+        }
         Some(capture)
     } else {
         None
@@ -297,4 +344,49 @@ fn analyze(args: &AnalyzeArgs) -> Result<(), Box<dyn std::error::Error>> {
 
     println!("wrote {}", reports.join("blueprint.md").display());
     Ok(())
+}
+
+/// Run the default probe library against the t0 savestate, diffing each
+/// probe's RAM against a baseline (idle) run.
+fn run_probes(
+    addr: &str,
+    savestate: &std::path::Path,
+    traces: &std::path::Path,
+) -> Result<Vec<c64re_probes::ProbeFinding>, Box<dyn std::error::Error>> {
+    use c64re_probes::{default_probe_library, diff_against_baseline, run_probe};
+
+    let mut child = c64re_capture::launch_vice(addr)?;
+    let result = (|| {
+        let mut monitor = c64re_capture::connect(addr)?;
+        let probes = default_probe_library();
+
+        let baseline_path = traces.join("probe-baseline.ram");
+        let baseline = run_probe(&mut monitor, savestate, &probes[0], 60, &baseline_path)?;
+
+        let mut probe_rams = Vec::new();
+        for definition in &probes {
+            let path = traces.join(format!("probe-{}.ram", definition.name));
+            let ram = run_probe(&mut monitor, savestate, definition, 60, &path)?;
+            probe_rams.push((definition.name.clone(), ram));
+        }
+        Ok::<_, Box<dyn std::error::Error>>(diff_against_baseline(&baseline, &probe_rams))
+    })();
+    let _ = child.kill();
+    let _ = child.wait();
+    result
+}
+
+/// Replay the savestate and collect an approximate execution-coverage map.
+fn run_provenance(
+    addr: &str,
+    savestate: &std::path::Path,
+) -> Result<c64re_provenance::ProvenanceMap, Box<dyn std::error::Error>> {
+    let mut child = c64re_capture::launch_vice(addr)?;
+    let result = (|| {
+        let mut monitor = c64re_capture::connect(addr)?;
+        c64re_capture::collect_provenance(&mut monitor, savestate, 300, 25, true)
+    })();
+    let _ = child.kill();
+    let _ = child.wait();
+    result
 }

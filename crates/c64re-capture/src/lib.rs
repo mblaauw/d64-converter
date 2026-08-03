@@ -17,6 +17,7 @@ pub const SPRITE_BYTES: usize = 64;
 pub const CHARSET_BYTES: usize = 2048;
 /// Bytes in the 1000-byte video matrix.
 pub const SCREEN_BYTES: usize = 1000;
+use c64re_provenance::ProvenanceMap;
 use c64re_vic::{DisplayMode, VicState};
 use c64re_vice_bmp::{Memspace, ViceMonitor};
 
@@ -180,7 +181,7 @@ pub fn capture_with_vice(
 /// canonical, deterministic start point. No warp: VICE's drive emulation is
 /// only cycle-deterministic without warp, which the savestate replay relies
 /// on.
-fn launch_vice(addr: &str) -> Result<Child, Box<dyn std::error::Error>> {
+pub fn launch_vice(addr: &str) -> Result<Child, Box<dyn std::error::Error>> {
     let monitor_addr = if addr.contains("://") {
         addr.to_string()
     } else {
@@ -784,7 +785,12 @@ pub fn apply_joyport(
     Ok(())
 }
 
-fn connect_with_retry(
+/// Connect to VICE with a 10-second retry window.
+pub fn connect(addr: &str) -> Result<ViceMonitor, Box<dyn std::error::Error>> {
+    connect_with_retry(addr, Duration::from_secs(10))
+}
+
+pub fn connect_with_retry(
     addr: &str,
     timeout: Duration,
 ) -> Result<ViceMonitor, Box<dyn std::error::Error>> {
@@ -835,4 +841,66 @@ pub fn output_paths(out: &Path) -> (PathBuf, PathBuf, PathBuf, PathBuf) {
         out.join("traces"),
         out.join("snapshots"),
     )
+}
+
+/// Replay the savestate for `frames` and harvest executed PC addresses from
+/// CpuHistory into a provenance map. This is an approximate coverage map:
+/// sampling every N frames misses short-lived code, but the main loops and
+/// handlers show up. When `autoplay` is set, the default input script runs
+/// during the replay so the capture includes input-driven code.
+pub fn collect_provenance(
+    monitor: &mut ViceMonitor,
+    savestate: &Path,
+    frames: u64,
+    sample_every: u64,
+    autoplay: bool,
+) -> Result<ProvenanceMap, Box<dyn std::error::Error>> {
+    monitor.undump(savestate.to_str().unwrap_or("t0.vsf"))?;
+    let mut provenance = ProvenanceMap::c64_ram();
+    let input_script = autoplay.then(|| default_autoplay_script(frames / 50));
+    let mut current_joy2 = None;
+    let mut input_events = Vec::new();
+    let mut prev_raster = read_raster_line(monitor)?;
+    let mut frame = 0_u64;
+    while frame < frames {
+        let mut wrapped = false;
+        for _ in 0..16 {
+            monitor.step_instructions(2500, false)?;
+            let raster = read_raster_line(monitor)?;
+            wrapped = raster < prev_raster;
+            prev_raster = raster;
+            if wrapped {
+                break;
+            }
+        }
+        if !wrapped {
+            return Err(
+                "provenance replay stalled: VIC raster stopped advancing (CPU jam or emulator halt)"
+                    .into(),
+            );
+        }
+        frame += 1;
+        if let Some(script) = &input_script {
+            let (port, value, label) = desired_joy_value(script, frame);
+            apply_joyport(
+                monitor,
+                frame,
+                port,
+                value,
+                label,
+                &mut current_joy2,
+                &mut input_events,
+            )?;
+        }
+        if frame.is_multiple_of(sample_every) {
+            // CpuHistory returns the most recent instructions; mark those PCs
+            // as executed. We request a small window to bound the cost.
+            if let Ok(history) = monitor.cpu_history(64) {
+                for entry in &history {
+                    provenance.get_mut(entry.pc).mark_executed();
+                }
+            }
+        }
+    }
+    Ok(provenance)
 }

@@ -1,0 +1,6 @@
+{
+  "executed_ranges": [
+    { "start": 2, "end": 2, "start_hex": "$0002", "end_hex": "$0002" },
+    { "start": 65535, "end": 65535, "start_hex": "$ffff", "end_hex": "$ffff" }
+  ]
+}

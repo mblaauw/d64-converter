@@ -690,3 +690,145 @@ pub fn hex16(value: u16) -> String {
 pub fn hex_name(value: u16) -> String {
     format!("{value:04x}")
 }
+
+// ---------------------------------------------------------------------------
+// Probe findings
+// ---------------------------------------------------------------------------
+
+use c64re_probes::ProbeFinding;
+use c64re_provenance::ProvenanceMap;
+
+pub fn probe_findings_json(findings: &[ProbeFinding]) -> String {
+    let mut out = String::new();
+    out.push_str("[\n");
+    for (index, finding) in findings.iter().enumerate() {
+        if index > 0 {
+            out.push_str(",\n");
+        }
+        out.push_str("  {\n");
+        out.push_str(&format!("    \"start\": {},\n", finding.start));
+        out.push_str(&format!("    \"end\": {},\n", finding.end));
+        out.push_str(&format!(
+            "    \"start_hex\": \"{}\",\n",
+            hex16(finding.start)
+        ));
+        out.push_str(&format!("    \"end_hex\": \"{}\",\n", hex16(finding.end)));
+        out.push_str(&format!(
+            "    \"role\": \"{}\",\n",
+            json_escape(&finding.role)
+        ));
+        out.push_str(&format!("    \"confidence\": {},\n", finding.confidence));
+        out.push_str(&format!(
+            "    \"changed_in\": {}\n",
+            json_string_array(&finding.changed_in)
+        ));
+        out.push_str("  }");
+    }
+    out.push_str("\n]\n");
+    out
+}
+
+pub fn probe_findings_markdown(findings: &[ProbeFinding]) -> String {
+    let mut out = String::new();
+    out.push_str("# Probe Findings\n\n");
+    out.push_str("Memory ranges that changed between controlled-input probe runs — candidates for input-sensitive game state.\n\n");
+    out.push_str(&format!("- Findings: {}\n\n", findings.len()));
+    out.push_str("| Range | Role | Confidence | Changed in |\n");
+    out.push_str("| --- | --- | ---: | --- |\n");
+    for finding in findings.iter().take(200) {
+        out.push_str(&format!(
+            "| {}-{} | {} | {}% | {} |\n",
+            hex16(finding.start),
+            hex16(finding.end),
+            finding.role,
+            finding.confidence,
+            finding.changed_in.join(", ")
+        ));
+    }
+    if findings.len() > 200 {
+        out.push_str(&format!(
+            "\nOnly the first 200 findings are shown. {} omitted.\n",
+            findings.len() - 200
+        ));
+    }
+    out
+}
+
+fn json_string_array(values: &[String]) -> String {
+    let items: Vec<String> = values
+        .iter()
+        .map(|value| format!("\"{}\"", json_escape(value)))
+        .collect();
+    format!("[{}]", items.join(", "))
+}
+
+// ---------------------------------------------------------------------------
+// Provenance
+// ---------------------------------------------------------------------------
+
+pub fn provenance_json(provenance: &ProvenanceMap) -> String {
+    let mut out = String::new();
+    out.push_str("{\n");
+    out.push_str("  \"executed_ranges\": [\n");
+    let ranges = executed_ranges(provenance);
+    for (index, (start, end)) in ranges.iter().enumerate() {
+        if index > 0 {
+            out.push_str(",\n");
+        }
+        out.push_str(&format!(
+            "    {{ \"start\": {start}, \"end\": {end}, \"start_hex\": \"{}\", \"end_hex\": \"{}\" }}",
+            hex16(*start),
+            hex16(*end)
+        ));
+    }
+    out.push_str("\n  ]\n");
+    out.push_str("}\n");
+    out
+}
+
+pub fn provenance_markdown(provenance: &ProvenanceMap) -> String {
+    let counts = provenance.counts();
+    let ranges = executed_ranges(provenance);
+    let mut out = String::new();
+    out.push_str("# Execution Provenance\n\n");
+    out.push_str("Approximate coverage map harvested from CpuHistory during a replay.\n\n");
+    out.push_str(&format!("- Executed bytes: {}\n", counts.executed));
+    out.push_str(&format!("- Executed ranges: {}\n\n", ranges.len()));
+    out.push_str("| Range | Bytes |\n");
+    out.push_str("| --- | ---: |\n");
+    for (start, end) in ranges.iter().take(200) {
+        out.push_str(&format!(
+            "| {}-{} | {} |\n",
+            hex16(*start),
+            hex16(*end),
+            end - start + 1
+        ));
+    }
+    if ranges.len() > 200 {
+        out.push_str(&format!(
+            "\nOnly the first 200 ranges are shown. {} omitted.\n",
+            ranges.len() - 200
+        ));
+    }
+    out
+}
+
+fn executed_ranges(provenance: &ProvenanceMap) -> Vec<(u16, u16)> {
+    let mut ranges = Vec::new();
+    let mut current: Option<(u16, u16)> = None;
+    for address in 0x0000_u32..0x1_0000 {
+        let byte = provenance.get(address as u16);
+        if byte.executed {
+            match &mut current {
+                Some((_, end)) => *end = address as u16,
+                None => current = Some((address as u16, address as u16)),
+            }
+        } else if let Some(range) = current.take() {
+            ranges.push(range);
+        }
+    }
+    if let Some(range) = current.take() {
+        ranges.push(range);
+    }
+    ranges
+}

@@ -43,6 +43,18 @@ This is not a magic source converter. The intended workflow is:
 - Reports: `blueprint.md`, `open-questions.md` (with the evidence needed to
   close each), `hardware-samples.md` (one row per sample with display mode),
   `assets.md`, `sid-writes.md`, `ram-diff.md`, `session.json`.
+- `--probe`: runs controlled-input experiments (hold-left/right/up/down,
+  fire) against the t0 savestate and diffs each run's RAM against an idle
+  baseline → `probe-findings.json/md` (input-sensitive memory ranges).
+- `--provenance`: replays the savestate with the autoplay script and harvests
+  executed PCs from `CpuHistory` into an approximate coverage map →
+  `provenance.json/md` (executed ranges).
+
+Caveat: the deterministic anchor is the savestate taken after the settle
+period. If a game crashes or idles in a tight loop by then (some titles do —
+reset vector `$0000`, BRK loops), the replay, probes, and provenance honestly
+report that state: zero probe findings and a 1-2 byte coverage map are valid
+signals, not bugs.
 
 Verified on Ghostbusters and International Karate Plus: two consecutive runs
 produce byte-identical `hardware-samples.json` and `input-events.json`.

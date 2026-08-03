@@ -78,6 +78,7 @@ name = "c64re-capture"
 version = "0.1.0"
 dependencies = [
  "c64re-d64",
+ "c64re-provenance",
  "c64re-vic",
  "c64re-vice-bmp",
  "serde",
@@ -90,6 +91,8 @@ dependencies = [
  "c64re-assets",
  "c64re-capture",
  "c64re-d64",
+ "c64re-probes",
+ "c64re-provenance",
  "c64re-report",
  "c64re-trace",
  "c64re-vic",
@@ -115,6 +118,11 @@ version = "0.1.0"
 [[package]]
 name = "c64re-probes"
 version = "0.1.0"
+dependencies = [
+ "c64re-capture",
+ "c64re-vice-bmp",
+ "serde",
+]
 
 [[package]]
 name = "c64re-provenance"
@@ -126,6 +134,8 @@ version = "0.1.0"
 dependencies = [
  "c64re-capture",
  "c64re-d64",
+ "c64re-probes",
+ "c64re-provenance",
  "c64re-trace",
  "serde",
  "serde_json",

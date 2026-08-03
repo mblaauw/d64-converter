@@ -4,5 +4,10 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 
+[dependencies]
+c64re-capture = { path = "../c64re-capture" }
+c64re-vice-bmp = { path = "../c64re-vice-bmp" }
+serde = { version = "1", features = ["derive"] }
+
 [lints]
 workspace = true
