@@ -397,6 +397,17 @@ impl ViceMonitor {
         self.checkpoint_set(start, end, mode, true, true, false)
     }
 
+    /// Non-stopping watchpoint: VICE counts hits without trapping the CPU.
+    /// Read the hit count with `checkpoint_get`.
+    pub fn watchpoint_nostop(
+        &mut self,
+        start: u16,
+        end: u16,
+        mode: WatchMode,
+    ) -> Result<CheckpointId> {
+        self.checkpoint_set(start, end, mode, false, true, false)
+    }
+
     pub fn checkpoint_delete(&mut self, id: CheckpointId) -> Result<()> {
         let response =
             self.send_command(CommandType::CheckpointDelete, id.0.to_le_bytes().to_vec())?;

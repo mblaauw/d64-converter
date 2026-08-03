@@ -68,6 +68,10 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
                         options.autostart_file =
                             Some(required_arg(args.next(), "missing --autostart-file value")?)
                     }
+                    "--sid-seconds" => {
+                        let value = required_arg(args.next(), "missing --sid-seconds value")?;
+                        options.sid_seconds = value.parse()?;
+                    }
                     unknown => return Err(format!("unknown argument: {unknown}").into()),
                 }
             }
@@ -89,7 +93,7 @@ fn print_usage() {
     println!();
     println!("Usage:");
     println!("  c64re disk <game.d64>");
-    println!("  c64re analyze <game.d64> --out <dir> [--vice] [--seconds 5] [--sample-hz 10] [--autoplay] [--autostart-file NAME]");
+    println!("  c64re analyze <game.d64> --out <dir> [--vice] [--seconds 5] [--sample-hz 10] [--autoplay] [--autostart-file NAME] [--sid-seconds 3]");
     println!("  c64re vice-smoke [host:port]");
 }
 
@@ -100,6 +104,7 @@ struct AnalyzeOptions {
     sample_hz: u64,
     autoplay: bool,
     autostart_file: Option<String>,
+    sid_seconds: u64,
     vice_addr: String,
 }
 
@@ -112,6 +117,7 @@ impl Default for AnalyzeOptions {
             sample_hz: 10,
             autoplay: false,
             autostart_file: None,
+            sid_seconds: 0,
             vice_addr: "127.0.0.1:6502".to_string(),
         }
     }
@@ -219,6 +225,7 @@ fn analyze(path: &str, options: &AnalyzeOptions) -> Result<(), Box<dyn std::erro
             options.seconds,
             options.sample_hz,
             options.autoplay,
+            options.sid_seconds,
             &options.vice_addr,
         )?;
         fs::write(
@@ -241,6 +248,16 @@ fn analyze(path: &str, options: &AnalyzeOptions) -> Result<(), Box<dyn std::erro
             fs::write(
                 reports.join("input-events.md"),
                 input_events_markdown(&capture.input_events),
+            )?;
+        }
+        if !capture.sid_writes.is_empty() {
+            fs::write(
+                traces.join("sid-writes.json"),
+                sid_writes_json(&capture.sid_writes),
+            )?;
+            fs::write(
+                reports.join("sid-writes.md"),
+                sid_writes_markdown(&capture.sid_writes),
             )?;
         }
         let asset_summary = extract_observed_assets(&assets, &capture)?;
@@ -323,6 +340,8 @@ struct ViceCapture {
     input_events_path: Option<String>,
     input_events: Vec<InputEvent>,
     game_start_frame: Option<u64>,
+    sid_writes_path: Option<String>,
+    sid_writes: Vec<SidWrite>,
 }
 
 #[derive(Debug, Clone)]
@@ -390,6 +409,13 @@ struct InputEvent {
     port: u16,
     value: u16,
     label: String,
+}
+
+/// Per-register SID write counts, harvested from non-stopping watchpoints.
+#[derive(Debug, Clone)]
+struct SidWrite {
+    address: u16,
+    write_count: u32,
 }
 
 struct ExtractedFileMetadata {
@@ -531,9 +557,20 @@ fn write_emulator_json(out: &mut String, vice_capture: Option<&ViceCapture>) {
             capture.input_events.len()
         ));
         match capture.game_start_frame {
-            Some(frame) => out.push_str(&format!("    \"game_start_frame\": {frame}\n")),
-            None => out.push_str("    \"game_start_frame\": null\n"),
+            Some(frame) => out.push_str(&format!("    \"game_start_frame\": {frame},\n")),
+            None => out.push_str("    \"game_start_frame\": null,\n"),
         }
+        match &capture.sid_writes_path {
+            Some(path) => out.push_str(&format!(
+                "    \"sid_writes_path\": \"{}\",\n",
+                json_escape(path)
+            )),
+            None => out.push_str("    \"sid_writes_path\": null,\n"),
+        }
+        out.push_str(&format!(
+            "    \"sid_write_count\": {}\n",
+            capture.sid_writes.len()
+        ));
     } else {
         out.push_str("    \"status\": \"not_run\",\n");
         out.push_str(
@@ -577,6 +614,7 @@ fn capture_with_vice(
     seconds: u64,
     sample_hz: u64,
     autoplay: bool,
+    sid_seconds: u64,
     addr: &str,
 ) -> Result<ViceCapture, Box<dyn std::error::Error>> {
     let mut child = launch_vice(addr)?;
@@ -589,6 +627,7 @@ fn capture_with_vice(
         autoplay,
         disk_path,
         autostart_name,
+        sid_seconds,
         addr,
     );
 
@@ -645,6 +684,7 @@ fn capture_with_running_vice(
     autoplay: bool,
     disk_path: &str,
     autostart_name: Option<&str>,
+    sid_seconds: u64,
     addr: &str,
 ) -> Result<ViceCapture, Box<dyn std::error::Error>> {
     let mut monitor = connect_with_retry(addr, Duration::from_secs(10))?;
@@ -840,6 +880,11 @@ fn capture_with_running_vice(
         reset_vector.get(1).copied().unwrap_or_default(),
     ]);
 
+    // SID write harvest: SID registers are write-only; reads return open-bus
+    // garbage. Set a write watchpoint, free-run the replay, and decode the
+    // writing instruction from CPU history to get (frame, address, value).
+    let sid_writes = harvest_sid_writes(&mut monitor, &savestate, sid_seconds)?;
+
     Ok(ViceCapture {
         address: addr.to_string(),
         seconds,
@@ -859,6 +904,8 @@ fn capture_with_running_vice(
             .then(|| "traces/input-events.json".to_string()),
         input_events,
         game_start_frame,
+        sid_writes_path: (!sid_writes.is_empty()).then(|| "traces/sid-writes.json".to_string()),
+        sid_writes,
     })
 }
 
@@ -881,6 +928,50 @@ fn read_raster_line(monitor: &mut ViceMonitor) -> Result<u16, Box<dyn std::error
         .unwrap_or(0))
 }
 
+/// Decode the writing instruction from CPU history: a store to a SID
+/// register is `STA/STX/STY $D4xx`, with the value in A/X/Y and the address
+/// in the operand.
+/// Harvest SID register write activity via non-stopping write watchpoints.
+/// SID registers ($D400-$D418) are write-only: reads return open-bus garbage,
+/// so per-register write counts are the only reliable evidence. One
+/// non-stopping watchpoint per register, free-run for `seconds`, then read
+/// the hit counts.
+fn harvest_sid_writes(
+    monitor: &mut ViceMonitor,
+    savestate: &Path,
+    seconds: u64,
+) -> Result<Vec<SidWrite>, Box<dyn std::error::Error>> {
+    if seconds == 0 {
+        return Ok(Vec::new());
+    }
+    monitor.undump(savestate.to_str().unwrap_or("t0.vsf"))?;
+    let mut watchpoints = Vec::new();
+    for register in 0xd400..=0xd418 {
+        let cp = monitor.watchpoint_nostop(register, register, c64re_vice_bmp::WatchMode::Write)?;
+        watchpoints.push((register, cp));
+    }
+    println!("harvesting SID write activity for {seconds}s (25 non-stopping watchpoints)...");
+    monitor.continue_run()?;
+    std::thread::sleep(Duration::from_secs(seconds));
+    let mut writes = Vec::new();
+    for (register, cp) in watchpoints {
+        if let Ok(info) = monitor.checkpoint_get(cp) {
+            if info.hit_count > 0 {
+                writes.push(SidWrite {
+                    address: register,
+                    write_count: info.hit_count,
+                });
+            }
+        }
+        let _ = monitor.checkpoint_delete(cp);
+    }
+    writes.sort_by_key(|w| w.address);
+    println!(
+        "harvested SID write activity: {} registers touched",
+        writes.len()
+    );
+    Ok(writes)
+}
 fn read_hardware_sample(
     monitor: &mut ViceMonitor,
     index: usize,
@@ -1406,6 +1497,43 @@ fn input_events_markdown(events: &[InputEvent]) -> String {
         out.push_str(&format!(
             "| {} | {} | ${:02x} | {} |\n",
             event.frame, event.port, event.value, event.label
+        ));
+    }
+    out
+}
+
+fn sid_writes_json(writes: &[SidWrite]) -> String {
+    let mut out = String::new();
+    out.push_str("[\n");
+    for (index, write) in writes.iter().enumerate() {
+        if index > 0 {
+            out.push_str(",\n");
+        }
+        out.push_str("  {\n");
+        out.push_str(&format!("    \"address\": {},\n", write.address));
+        out.push_str(&format!(
+            "    \"address_hex\": \"{}\",\n",
+            hex16(write.address)
+        ));
+        out.push_str(&format!("    \"write_count\": {}\n", write.write_count));
+        out.push_str("  }");
+    }
+    out.push_str("\n]\n");
+    out
+}
+
+fn sid_writes_markdown(writes: &[SidWrite]) -> String {
+    let mut out = String::new();
+    out.push_str("# SID Write Activity\n\n");
+    out.push_str("SID registers ($D400-$D418) are write-only; reads return open-bus garbage. Per-register write counts were harvested from non-stopping write watchpoints during a replay.\n\n");
+    out.push_str(&format!("- Registers written: {}\n\n", writes.len()));
+    out.push_str("| Register | Write count |\n");
+    out.push_str("| ---: | ---: |\n");
+    for write in writes {
+        out.push_str(&format!(
+            "| {} | {} |\n",
+            hex16(write.address),
+            write.write_count
         ));
     }
     out
